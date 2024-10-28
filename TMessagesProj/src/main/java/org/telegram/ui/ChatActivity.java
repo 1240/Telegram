@@ -367,6 +367,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private BusinessLinksEmptyView businessLinksEmptyView;
     public ChatActivityFragmentView contentView;
     public MetaballViewFINAL popupView;
+    public boolean popupViewUppear;
     private ChatBigEmptyView bigEmptyView;
     private ArrayList<View> actionModeViews = new ArrayList<>();
     private ChatAvatarContainer avatarContainer;
@@ -945,7 +946,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private FireworksOverlay fireworksOverlay;
 
     private boolean swipeBackEnabled = true;
-    private long popupStartTime;
+    private long localPopupStartTime;
 
     public static Pattern publicMsgUrlPattern;
     public static Pattern voiceChatUrlPattern;
@@ -4430,7 +4431,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
             }
 
             private void processTouchEvent(MotionEvent e) {
-                if (popupView != null) {
+                if (popupView != null && popupViewUppear) {
                     if (popupView.onTouchEvent(e)) {
                         return;
                     }
@@ -16096,7 +16097,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
 
         @Override
         public boolean dispatchTouchEvent(MotionEvent ev) {
-            if (popupView != null && (ev.getAction() == MotionEvent.ACTION_MOVE || ev.getAction() == MotionEvent.ACTION_CANCEL)) {
+            if (popupView != null && popupViewUppear && (ev.getAction() == MotionEvent.ACTION_MOVE || ev.getAction() == MotionEvent.ACTION_CANCEL)) {
                 popupView.onTouchEvent(ev);
                 return true;
             }
@@ -36241,14 +36242,12 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
         @Override
         public void didLongPress(ChatMessageCell cell, float x, float y) {
             if (cell.drawSideButton == 1 && x >= cell.sideStartX) {
-                if (popupView != null && popupView.getParent() != null) {
-                    contentView.removeView(popupView);
-                }
                 swipeBackEnabled = false;
-                popupStartTime = SystemClock.elapsedRealtime();
+                popupViewUppear = true;
+                localPopupStartTime = SystemClock.elapsedRealtime();
                 popupView = new MetaballViewFINAL(getContext(), getThemedDrawable(Theme.key_drawable_shareIcon),
                         ChatActivity.this, contentView, getResourceProvider(),
-                        contentView.getHeight(), contentView.getWidth(), contentPaddingTop
+                        contentView.getHeight(), contentView.getWidth(), contentPaddingTop, localPopupStartTime
                 ) {
                     @Override
                     protected void onSend(TLRPC.Dialog did, int count, TLRPC.TL_forumTopic topic) {
@@ -36268,13 +36267,11 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
 
                     @Override
-                    protected void onCollapseAnimationFinished() {
-                        if (popupView != null && popupView.getParent() != null) {
-                            contentView.removeView(popupView);
-                            popupView = null;
-                        }
-                        if ((SystemClock.elapsedRealtime()) > popupStartTime) {
+                    protected void onCollapseAnimationFinished(long popupStartTime) {
+                        super.onCollapseAnimationFinished(popupStartTime);
+                        if (localPopupStartTime == popupStartTime) {
                             swipeBackEnabled = true;
+                            popupViewUppear = false;
                         }
                     }
                 };

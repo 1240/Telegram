@@ -76,8 +76,9 @@ public class MetaballViewFINAL extends View {
     private final View parentView;
     private boolean darkTheme = Theme.getActiveTheme().isDark();
     private Theme.ResourcesProvider resourcesProvider;
+    private final long popupStartTime;
 
-    public MetaballViewFINAL(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop) {
+    public MetaballViewFINAL(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop, long popupStartTime) {
         super(context);
         this.parentView = parentView;
         this.drawable = drawable;
@@ -86,6 +87,7 @@ public class MetaballViewFINAL extends View {
         this.h = h;
         this.w = w;
         this.contentPaddingTop = contentPaddingTop;
+        this.popupStartTime = popupStartTime;
         init();
     }
 
@@ -823,7 +825,6 @@ public class MetaballViewFINAL extends View {
     }
 
 
-    private boolean isTouchActive = true;
     private int highlightedAvatarIndex = -1;
     private int finalAvatarIndex = -1;
     private int previousHighlightedAvatarIndex = -1;
@@ -835,61 +836,50 @@ public class MetaballViewFINAL extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_MOVE:
-                if (isTouchActive) {
-                    if (animationProgress >= 1f) {
-                        int previousHighlightedIndex = highlightedAvatarIndex;
-                        highlightedAvatarIndex = getTouchedAvatarIndex(touchX, touchY - getY());
-                        if (previousHighlightedIndex != highlightedAvatarIndex) {
-                            previousHighlightedAvatarIndex = previousHighlightedIndex;
-                            animateTooltip();
-                        }
+                if (animationProgress >= 1f) {
+                    int previousHighlightedIndex = highlightedAvatarIndex;
+                    highlightedAvatarIndex = getTouchedAvatarIndex(touchX, touchY - getY());
+                    if (previousHighlightedIndex != highlightedAvatarIndex) {
+                        previousHighlightedAvatarIndex = previousHighlightedIndex;
+                        animateTooltip();
                     }
                 }
                 return true;
-
             case MotionEvent.ACTION_CANCEL:
-                if (isTouchActive) {
-                    isTouchActive = false;
-                    if (animationFinished) {
-                        collapseAnimation();
-                        highlightedAvatarIndex = -1;
-                        previousHighlightedAvatarIndex = -1;
-                    } else {
-                        reverseAnimation();
-                    }
-                    return true;
+                if (animationFinished) {
+                    collapseAnimation();
+                    highlightedAvatarIndex = -1;
+                    previousHighlightedAvatarIndex = -1;
+                } else {
+                    reverseAnimation();
                 }
-                break;
+                return true;
             case MotionEvent.ACTION_UP:
-                if (isTouchActive) {
-                    isTouchActive = false;
-                    if (animationProgress >= 1f) {
-                        if (highlightedAvatarIndex != -1) {
-                            sendInternal(highlightedAvatarIndex);
-                            RectF rectF = avatarRects.get(highlightedAvatarIndex);
-                            path.reset();
-                            path.moveTo(rectF.left + rectF.width() / 2 - dpToPx(20), rectF.top + rectF.height() / 2);
-                            if (AccountInstance.getInstance(currentAccount).getUserConfig().isPremium()
-                                    && DialogObject.isUserDialog(dialogs.get(highlightedAvatarIndex).first)
-                                    && UserObject.isUserSelf(MessagesController.getInstance(currentAccount).getUser(dialogs.get(highlightedAvatarIndex).first))) {
-                                float y2 = dpToPx(44) + contentPaddingTop;
-                                path.quadTo(0, Math.min(rectF.bottom + dpToPx(50), h), dpToPx(20), y2);
-                            } else {
-                                float y2 = h - dpToPx(174);
-                                path.quadTo(0, Math.max(rectF.top - dpToPx(50), 0), dpToPx(20), y2);
-                            }
-                            pathMeasure = new PathMeasure(path, false);
-                            pathLength = pathMeasure.getLength();
+                if (animationProgress >= 1f) {
+                    if (highlightedAvatarIndex != -1) {
+                        sendInternal(highlightedAvatarIndex);
+                        RectF rectF = avatarRects.get(highlightedAvatarIndex);
+                        path.reset();
+                        path.moveTo(rectF.left + rectF.width() / 2 - dpToPx(20), rectF.top + rectF.height() / 2);
+                        if (AccountInstance.getInstance(currentAccount).getUserConfig().isPremium()
+                                && DialogObject.isUserDialog(dialogs.get(highlightedAvatarIndex).first)
+                                && UserObject.isUserSelf(MessagesController.getInstance(currentAccount).getUser(dialogs.get(highlightedAvatarIndex).first))) {
+                            float y2 = dpToPx(44) + contentPaddingTop;
+                            path.quadTo(0, Math.min(rectF.bottom + dpToPx(50), h), dpToPx(20), y2);
+                        } else {
+                            float y2 = h - dpToPx(174);
+                            path.quadTo(0, Math.max(rectF.top - dpToPx(50), 0), dpToPx(20), y2);
                         }
-                        collapseAnimation();
-                        highlightedAvatarIndex = -1;
-                        previousHighlightedAvatarIndex = -1;
-                    } else {
-                        reverseAnimation();
+                        pathMeasure = new PathMeasure(path, false);
+                        pathLength = pathMeasure.getLength();
                     }
-                    return true;
+                    collapseAnimation();
+                    highlightedAvatarIndex = -1;
+                    previousHighlightedAvatarIndex = -1;
+                } else {
+                    reverseAnimation();
                 }
-                break;
+                return true;
         }
         return false;
     }
@@ -1004,6 +994,7 @@ public class MetaballViewFINAL extends View {
         animator = null;
         collapseAnimator = null;
         tooltipAnimator = null;
+        setVisibility(GONE);
     }
 
     ImageReceiver[] imageReceivers = {new ImageReceiver(this), new ImageReceiver(this), new ImageReceiver(this), new ImageReceiver(this), new ImageReceiver(this)};
@@ -1066,8 +1057,8 @@ public class MetaballViewFINAL extends View {
 
     }
 
-    protected void onCollapseAnimationFinished() {
-
+    protected void onCollapseAnimationFinished(long popupStartTime) {
+        setVisibility(View.GONE);
     }
 
 
@@ -1114,7 +1105,7 @@ public class MetaballViewFINAL extends View {
                 highlightedAvatarIndex = -1;
                 previousHighlightedAvatarIndex = -1;
                 postInvalidateOnAnimation();
-                onCollapseAnimationFinished();
+                onCollapseAnimationFinished(popupStartTime);
             }
         });
 
@@ -1136,7 +1127,7 @@ public class MetaballViewFINAL extends View {
             public void onAnimationEnd(Animator animation) {
                 animationProgress = 0f;
                 onAnimationFinished();
-                onCollapseAnimationFinished();
+                onCollapseAnimationFinished(popupStartTime);
                 postInvalidateOnAnimation();
             }
         });
@@ -1148,6 +1139,7 @@ public class MetaballViewFINAL extends View {
         previousTooltipProgress = tooltipProgress;
         tooltipAnimator = ValueAnimator.ofFloat(0, 1);
         tooltipAnimator.setDuration(150);
+        animator.setInterpolator(new OvershootInterpolator(1.05f));
         tooltipAnimator.addUpdateListener(animation -> {
             tooltipProgress = (float) animation.getAnimatedValue();
             postInvalidateOnAnimation();
