@@ -655,6 +655,7 @@ public class MetaballViewFINAL extends View {
             if (avatarSize > 0) {
                 ImageReceiver imageReceiver = imageReceivers[i];
                 imageReceiver.setRoundRadius((int) popupSize);
+                boolean needScaleVehicle = i == 0 && imageReceiver.getStaticThumb() instanceof AvatarDrawable;
                 if (animationProgress >= 1f) {
                     final float alfa;
                     float scaleFactor;
@@ -690,12 +691,16 @@ public class MetaballViewFINAL extends View {
                     if (collapseAnimationProgress != 0 && finalAvatarIndex == i) {
                         float scale = 10 * (collapseAnimationProgress);
                         imageReceiver.setAlpha(1);
+                        float dpScale = dpToPx(scale);
+                        if (needScaleVehicle) {
+                            ((AvatarDrawable) imageReceiver.getStaticThumb()).setScaleSize(1 - 2 * dpScale / avatarDiameter);
+                        }
                         pathMeasure.getPosTan(pathLength * collapseAnimationProgress, pos, null);
                         bounds.set(
-                                -dpToPx(2) + dpToPx(scale) + pos[0] + avatarDiameter / 2 - avatarSize / 2,
-                                -dpToPx(2) + dpToPx(scale) + pos[1] - avatarSize / 2,
-                                -dpToPx(2) - dpToPx(scale) + pos[0] + avatarDiameter / 2 - avatarSize / 2 + avatarSize,
-                                -dpToPx(2) - dpToPx(scale) + pos[1] - avatarSize / 2 + avatarSize
+                                -dpToPx(2) + dpScale + pos[0] + avatarDiameter / 2 - avatarSize / 2,
+                                -dpToPx(2) + dpScale + pos[1] - avatarSize / 2,
+                                -dpToPx(2) - dpScale + pos[0] + avatarDiameter / 2 - avatarSize / 2 + avatarSize,
+                                -dpToPx(2) - dpScale + pos[1] - avatarSize / 2 + avatarSize
                         );
                     } else if (collapseAnimationProgress != 0) {
                         imageReceiver.setAlpha(alfa * (1 - collapseAnimationProgress));
@@ -783,6 +788,9 @@ public class MetaballViewFINAL extends View {
                         }
                     }
                 } else {
+                    if (needScaleVehicle) {
+                        ((AvatarDrawable) imageReceiver.getStaticThumb()).setScaleSize(avatarSize / avatarDiameter);
+                    }
                     bounds.set(
                             avatarX + avatarDiameter / 2 - avatarSize / 2,
                             centerY - avatarSize / 2,
@@ -791,6 +799,9 @@ public class MetaballViewFINAL extends View {
                     );
                     imageReceiver.setImageCoords(bounds);
                     imageReceiver.draw(canvas);
+                    if (needScaleVehicle) {
+                        ((AvatarDrawable) imageReceiver.getStaticThumb()).setScaleSize(1);
+                    }
                 }
             }
         }
@@ -1020,7 +1031,7 @@ public class MetaballViewFINAL extends View {
                 } else if (UserObject.isUserSelf(user)) {
                     avatarDrawable.setAvatarType(AvatarDrawable.AVATAR_TYPE_SAVED);
                     names[i] = LocaleController.getString(R.string.SavedMessages);
-                    imageReceiver.setImage(null, null, null, null, avatarDrawable, 0, null, user, 0);
+                    imageReceiver.setImage(null, null, avatarDrawable, null, null, 0);
                 } else {
                     imageReceiver.setForUserOrChat(user, avatarDrawable);
                 }
