@@ -530,7 +530,7 @@ public class MetaballViewFINAL extends View {
 
         if (animationProgress > 0.4f) {
             float additionalProgress = Math.abs((animationProgress - 0.4f)) / 0.6f;
-            float sizeDecrease = dpToPx(22f);
+            float sizeDecrease = dpToPx(30f);
             newSize -= sizeDecrease * additionalProgress;
         }
 
