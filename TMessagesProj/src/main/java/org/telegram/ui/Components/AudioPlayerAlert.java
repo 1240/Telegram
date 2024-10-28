@@ -17,6 +17,7 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -29,6 +30,7 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
@@ -49,19 +51,26 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.media3.common.util.UnstableApi;
+import androidx.mediarouter.app.MediaRouteButton;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.C;
+import com.google.android.gms.cast.framework.CastButtonFactory;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
+import org.telegram.messenger.ChromeCastController;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DownloadController;
@@ -106,7 +115,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.NotificationCenterDelegate, DownloadController.FileDownloadProgressListener {
+@UnstableApi public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.NotificationCenterDelegate, DownloadController.FileDownloadProgressListener {
 
     private ActionBar actionBar;
     private View actionBarShadow;
@@ -1177,6 +1186,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         listView.setOnItemClickListener((view, position) -> {
             if (view instanceof AudioPlayerCell) {
                 ((AudioPlayerCell) view).didPressedButton();
+                setChromeCastUri();
             }
         });
         listView.setOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -1254,6 +1264,47 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         updateTitle(false);
         updateRepeatButton();
         updateEmptyView();
+
+        if (ChromeCastController.getInstance().isGooglePlayServicesAvailable) {
+            try {
+                boolean isDark = ColorUtils.calculateLuminance(getThemedColor(Theme.key_windowBackgroundWhite)) <= 0.5f;
+                MediaRouteButton castButton = new MediaRouteButton(parentActivity);
+                CastButtonFactory.setUpMediaRouteButton(parentActivity.getApplicationContext(), castButton);
+                int tintColor = isDark ? Color.WHITE : Color.BLACK;
+                ContextThemeWrapper castContext = new ContextThemeWrapper(context, androidx.mediarouter.R.style.Theme_MediaRouter);
+                TypedArray attrs = castContext.obtainStyledAttributes(null, androidx.mediarouter.R.styleable.MediaRouteButton, androidx.mediarouter.R.attr.mediaRouteButtonStyle, 0);
+                Drawable drawable = attrs.getDrawable(androidx.mediarouter.R.styleable.MediaRouteButton_externalRouteEnabledDrawable);
+                attrs.recycle();
+                DrawableCompat.setTint(drawable, tintColor);
+                drawable.setState(castButton.getDrawableState());
+                castButton.setRemoteIndicatorDrawable(drawable);
+                playerLayout.addView(castButton, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.RIGHT, 0, 10, 0, 0));
+                ChromeCastController.getInstance().addVideoPlayerListener(new ChromeCastController.VideoPlayerPausePlay() {
+                    @Override
+                    public void pause() {
+                        if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+                            return;
+                        }
+                        if (!MediaController.getInstance().isMessagePaused()) {
+                            MediaController.getInstance().pauseMessage(MediaController.getInstance().getPlayingMessageObject());
+                        }
+                    }
+
+                    @Override
+                    public void play() {
+                        if (MediaController.getInstance().isDownloadingCurrentMessage()) {
+                            return;
+                        }
+                        if (MediaController.getInstance().isMessagePaused()) {
+                            MediaController.getInstance().playMessage(MediaController.getInstance().getPlayingMessageObject());
+                        }
+                    }
+                });
+            } catch (Exception exception) {
+                FileLog.e(exception);
+            }
+        }
+        setChromeCastUri();
     }
 
     @Override
@@ -1841,6 +1892,7 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         NotificationCenter.getInstance(currentAccount).removeObserver(this, NotificationCenter.moreMusicDidLoad);
         NotificationCenter.getGlobalInstance().removeObserver(this, NotificationCenter.messagePlayingSpeedChanged);
         DownloadController.getInstance(currentAccount).removeLoadingFileObserver(this);
+        ChromeCastController.getInstance().release();
     }
 
     @Override
@@ -2690,5 +2742,63 @@ public class AudioPlayerAlert extends BottomSheet implements NotificationCenter.
         }
 
         protected abstract TextView createTextView();
+    }
+
+    private void setChromeCastUri() {
+        final MessageObject messageObject = MediaController.getInstance().getPlayingMessageObject();
+//        String fileName = FileLoader.getDocumentFileName(messageObject.getDocument());
+//        File f = null;
+//        if (TextUtils.isEmpty(fileName)) {
+//            fileName = messageObject.getFileName();
+//        }
+//        String path = messageObject.messageOwner.attachPath;
+//        if (path != null && path.length() > 0) {
+//            File temp = new File(path);
+//            if (!temp.exists()) {
+//                path = null;
+//            }
+//        }
+//        if (path == null || path.length() == 0) {
+//            path = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner).toString();
+//        }
+//        MediaController.saveFile(path, parentActivity, 3, fileName, messageObject.getDocument() != null ? messageObject.getDocument().mime_type : "", uri -> BulletinFactory.of((FrameLayout) containerView, resourcesProvider).createDownloadBulletin(BulletinFactory.FileType.AUDIO).show());
+
+        try {
+            File f = null;
+            boolean isVideo = false;
+
+            if (messageObject != null) {
+                        /*if (currentMessageObject.messageOwner.media instanceof TLRPC.TL_messageMediaWebPage) {
+                            AndroidUtilities.openUrl(parentActivity, currentMessageObject.messageOwner.media.webpage.url);
+                            return;
+                        }*/
+                if (!TextUtils.isEmpty(messageObject.messageOwner.attachPath)) {
+                    f = new File(messageObject.messageOwner.attachPath);
+                    if (!f.exists()) {
+                        f = null;
+                    }
+                }
+                if (f == null) {
+                    f = FileLoader.getInstance(currentAccount).getPathToMessage(messageObject.messageOwner);
+                }
+            }
+            if (f != null && !f.exists()) {
+                f = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), f.getName());
+            }
+
+            if (f != null && f.exists()) {
+                String type;
+                Uri uri;
+                if (messageObject != null) {
+                    type = messageObject.getMimeType();
+                } else {
+                    type = "other";
+                }
+                uri = Uri.fromFile(f);
+                ChromeCastController.getInstance().setItem(uri,type);
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
     }
 }

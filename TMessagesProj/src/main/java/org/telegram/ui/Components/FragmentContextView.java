@@ -16,6 +16,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
@@ -81,6 +82,7 @@ import org.telegram.ui.DialogsActivity;
 import org.telegram.ui.GroupCallActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.LocationActivity;
+import org.telegram.ui.Stories.recorder.HintView2;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -172,7 +174,9 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
             int currentTime = fragment.getConnectionsManager().getCurrentTime();
             int diff = call.call.schedule_date - currentTime;
             String str;
-            if (diff >= 24 * 60 * 60) {
+            if (!call.call.schedule_start_subscribed && !ChatObject.canManageCalls(chatActivity.getCurrentChat())) {
+                str = LocaleController.getString(R.string.VoipChatNotify);
+            } else if (diff >= 24 * 60 * 60) {
                 str = LocaleController.formatPluralString("Days", Math.round(diff / (24 * 60 * 60.0f)));
             } else {
                 str = AndroidUtilities.formatFullDuration(call.call.schedule_date - currentTime);
@@ -184,6 +188,7 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
         }
     };
 
+    private HintView2 reminderHintView;
     private final int account = UserConfig.selectedAccount;
 
     private boolean isLocation;
@@ -736,7 +741,32 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
                 if (call == null) {
                     return;
                 }
-                VoIPHelper.startCall(fragment.getMessagesController().getChat(call.chatId), null, null, false, call.call != null && !call.call.rtmp_stream, fragment.getParentActivity(), fragment, fragment.getAccountInstance());
+                if (!call.call.schedule_start_subscribed && !ChatObject.canManageCalls(chatActivity.getCurrentChat())) {
+                    TLRPC.TL_phone_toggleGroupCallStartSubscription req = new TLRPC.TL_phone_toggleGroupCallStartSubscription();
+                    req.call = call.getInputGroupCall();
+                    call.call.schedule_start_subscribed = !call.call.schedule_start_subscribed;
+                    req.subscribed = call.call.schedule_start_subscribed;
+                    AccountInstance accountInstance = AccountInstance.getInstance(account);
+                    accountInstance.getConnectionsManager().sendRequest(req, (response, error) -> {
+                        if (response != null) {
+                            accountInstance.getMessagesController().processUpdates((TLRPC.Updates) response, false);
+                        }
+                    });
+                    String text;
+                    if (!TextUtils.isEmpty(call.call.title)) {
+                        text = call.call.title;
+                    } else if (call.call.rtmp_stream) {
+                        text = LocaleController.getString(R.string.VoipChannelVoiceChat);
+                    } else if (ChatObject.isChannelOrGiga(chatActivity.getCurrentChat())) {
+                        text = LocaleController.getString(R.string.VoipChannelVoiceChat);
+                    } else {
+                        text = LocaleController.getString(R.string.VoipGroupVoiceChat);
+                    }
+                    frameLayout.invalidate();
+                    showReminderBulletin(LocaleController.formatString(R.string.VoipChatNotifyHint, text.toLowerCase()));
+                } else {
+                    VoIPHelper.startCall(fragment.getMessagesController().getChat(call.chatId), null, null, false, call.call != null && !call.call.rtmp_stream, fragment.getParentActivity(), fragment, fragment.getAccountInstance());
+                }
             } else if (currentStyle == STYLE_IMPORTING_MESSAGES) {
                 SendMessagesHelper.ImportingHistory importingHistory = fragment.getSendMessagesHelper().getImportingHistory(((ChatActivity) fragment).getDialogId());
                 if (importingHistory == null) {
@@ -2437,5 +2467,9 @@ public class FragmentContextView extends FrameLayout implements NotificationCent
 
     private int getThemedColor(int key) {
         return Theme.getColor(key, resourcesProvider);
+    }
+
+    private void showReminderBulletin(String text) {
+        BulletinFactory.of(fragment).createSimpleBulletin(R.raw.silent_unmute, text).show();
     }
 }

@@ -319,6 +319,7 @@ public class ApplicationLoader extends Application {
 
         LauncherIconController.tryFixLauncherIconIfNeeded();
         ProxyRotationController.init();
+        ChromeCastController.getInstance().init(this);
     }
 
     public static void startPushService() {

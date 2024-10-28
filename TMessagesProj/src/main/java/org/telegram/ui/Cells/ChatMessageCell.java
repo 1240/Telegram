@@ -1263,6 +1263,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     public boolean isRepliesChat;
     public boolean isPinnedChat;
     private boolean isPressed;
+    private boolean isPopupPressed;
     private boolean forwardName;
     private boolean isHighlighted;
     private boolean isHighlightedAnimated;
@@ -1372,17 +1373,19 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private boolean drawTopic;
     private MessageTopicButton topicButton;
 
-    private int drawSideButton;
+    public int drawSideButton;
     private boolean sideButtonVisible;
     private int drawSideButton2;
     private boolean sideButtonPressed;
+    public boolean showSideButton1240;
+    private boolean sideButtonLongPressed;
     private int pressedSideButton;
     private Path sideButtonPath1, sideButtonPath2;
     private float[] sideButtonPathCorners1, sideButtonPathCorners2;
     private static final int SIDE_BUTTON_SPONSORED_CLOSE = 4;
     private static final int SIDE_BUTTON_SPONSORED_MORE = 5;
-    private float sideStartX;
-    private float sideStartY;
+    public float sideStartX;
+    public float sideStartY;
 
     private StaticLayout nameLayout;
     private int nameLayoutWidth;
@@ -3887,6 +3890,10 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+//        if (checkPopupEvent(event)) {
+//            return true;
+//        }
+
         if (currentMessageObject == null || delegate != null && !delegate.canPerformActions() || animationRunning) {
             if (currentMessageObject != null && currentMessageObject.preview) {
                 return checkTextSelection(event);
@@ -4416,6 +4423,46 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         }
         return pinchToZoomHelper.checkPinchToZoom(ev, this, photoImage, null, null, currentMessageObject, mediaSpoilerEffect2 == null ? 0 : mediaSpoilerEffect2.getAttachIndex(this));
     }
+
+//    Runnable cancelLongPressRunnable;
+
+//    private boolean checkPopupEvent(MotionEvent event) {
+////        if (sideButtonPressed) {
+//            //  && (event.getAction() != MotionEvent.ACTION_UP || event.getAction() != MotionEvent.ACTION_CANCEL)
+////            cancelCheckLongPress();
+////            sideButtonLongPressed = true;
+////            cancelLongPress();
+////            if (cancelLongPressRunnable == null) {
+////                cancelLongPressRunnable = () -> {
+////                    cancelCheckLongPress();
+////                    sideButtonLongPressed = true;
+////                };
+////                postDelayed(cancelLongPressRunnable, ViewConfiguration.getLongPressTimeout() - ViewConfiguration.getTapTimeout() - 50);
+////            }
+////        } else {
+////            removeCallbacks(cancelLongPressRunnable);
+////            cancelLongPressRunnable = null;
+////        }
+//        if (sideButtonLongPressed && popup == null) {
+//            popup = new MetaballDrawable();
+//            final int scx = (int) (sideStartX - AndroidUtilities.dp(200)), scy = (int) (sideStartY - AndroidUtilities.dp(200));
+//            final int width = popup.getIntrinsicWidth() > 0 ? popup.getIntrinsicWidth() : AndroidUtilities.dp(200);
+//            final int height = popup.getIntrinsicHeight() > 0 ? popup.getIntrinsicHeight() : AndroidUtilities.dp(200);
+//
+//            final int shw = width / 2;
+//            final int shh = height / 2;
+//
+//            popup.setBounds(scx - shw, scy - shh, scx + shw, scy + shh);
+//            setDrawableBounds(popup, sideStartX + AndroidUtilities.dp(4), sideStartY + AndroidUtilities.dp(4));
+//        }
+//        if (popup != null) {
+//            boolean result = popup.onTouch(event);
+//            if (!result) popup = null;
+//            isPopupPressed = result;
+//            return result;
+//        }
+//        return false;
+//    }
 
     private boolean checkTextSelection(MotionEvent event) {
         if (delegate == null) return false;
@@ -18309,7 +18356,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     }
 
     private void drawSideButton(Canvas canvas) {
-        if (drawSideButton != 0) {
+        if (drawSideButton != 0 && !showSideButton1240) {
             if (currentPosition != null && currentMessagesGroup != null && currentMessagesGroup.isDocuments && !currentPosition.last) {
                 return;
             }
@@ -24344,7 +24391,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                     changed = true;
                 }
             }
-            
+
             if (mediaOffsetY != lastMediaOffsetY) {
                 animateFromMediaOffsetY = lastMediaOffsetY;
                 animateMediaOffsetY = true;

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">Telegram</string>
-    <string name="AppNameBeta">Telegram Beta</string>
+    <string name="AppName">l24o R1</string>
+    <string name="AppNameBeta">l24o R1 Beta</string>
     <string name="LanguageName">English</string>
     <string name="English">English</string>
     <string name="LanguageNameInEnglish">English</string>
@@ -3041,6 +3041,7 @@
     <string name="OpenFile">OPEN FILE</string>
     <string name="ShowInChat">Show in chat</string>
     <string name="StopDownload">Stop downloading</string>
+    <string name="Cast">Cast</string>
     <string name="SaveToGallery">Save to gallery</string>
     <string name="Of">%1$d of %2$d</string>
     <string name="TaggedMessages_one">%1$d message</string>
@@ -4035,6 +4036,8 @@
     <string name="StartVoipChannelTitle">Live Stream</string>
     <string name="StartVoipChatPermission">Manage Live Streams</string>
     <string name="VoipChatJoin">Join</string>
+    <string name="VoipChatNotify">Notify me</string>
+    <string name="VoipChatNotifyHint">You will be notified when the %s starts</string>
     <string name="MembersTalking_one">%1$s member talking</string>
     <string name="MembersTalking_other">%1$s members talking</string>
     <string name="Speaking">speaking</string>
@@ -8179,4 +8182,5 @@
     <string name="Gift2ButtonSendGift">send a gift</string>
     <string name="Gift2ButtonSell_one">sell for %d Star</string>
     <string name="Gift2ButtonSell_other">sell for %d Stars</string>
+    <string name="BotStartButtonHint">Tap here to use this bot</string>
 </resources>

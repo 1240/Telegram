@@ -9,6 +9,7 @@
 package org.telegram.ui;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.AndroidUtilities.getActivity;
 import static org.telegram.messenger.AndroidUtilities.lerp;
 import static org.telegram.messenger.LocaleController.getString;
 
@@ -30,6 +31,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -121,11 +123,13 @@ import android.widget.Toast;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.collection.ArrayMap;
 import androidx.collection.LongSparseArray;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.ColorUtils;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.widget.NestedScrollView;
@@ -133,6 +137,7 @@ import androidx.dynamicanimation.animation.DynamicAnimation;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
+import androidx.mediarouter.app.MediaRouteButton;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.LinearSmoothScrollerEnd;
@@ -142,6 +147,7 @@ import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout;
+import com.google.android.gms.cast.framework.CastButtonFactory;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
@@ -155,6 +161,7 @@ import org.telegram.messenger.BotWebViewVibrationEffect;
 import org.telegram.messenger.BringAppForegroundService;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
+import org.telegram.messenger.ChromeCastController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DownloadController;
 import org.telegram.messenger.Emoji;
@@ -239,8 +246,8 @@ import org.telegram.ui.Components.OtherDocumentPlaceholderDrawable;
 import org.telegram.ui.Components.Paint.Views.LPhotoPaintView;
 import org.telegram.ui.Components.Paint.Views.MaskPaintView;
 import org.telegram.ui.Components.Paint.Views.StickerCutOutBtn;
-import org.telegram.ui.Components.Paint.Views.StickerMakerView;
 import org.telegram.ui.Components.Paint.Views.StickerMakerBackgroundView;
+import org.telegram.ui.Components.Paint.Views.StickerMakerView;
 import org.telegram.ui.Components.PaintingOverlay;
 import org.telegram.ui.Components.PhotoCropView;
 import org.telegram.ui.Components.PhotoFilterView;
@@ -296,6 +303,7 @@ import java.util.Objects;
 
 @SuppressLint("WrongConstant")
 @SuppressWarnings("unchecked")
+@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
 public class PhotoViewer implements NotificationCenter.NotificationCenterDelegate, GestureDetector2.OnGestureListener, GestureDetector2.OnDoubleTapListener {
     private final static float ZOOM_SCALE = 0.1f;
     private final static int MARK_DEFERRED_IMAGE_LOADING = 1;
@@ -352,10 +360,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         private FrameLayout titleLayout;
         SimpleTextView[] titleTextView;
         AnimatedTextView subtitleTextView;
+        MediaRouteButton castButton;
 
-        public PhotoViewerActionBarContainer(Context context) {
+        public PhotoViewerActionBarContainer(Context context, MediaRouteButton castButton) {
             super(context);
-
+            this.castButton = castButton;
             container = new FrameLayout(context);
             container.setPadding(dp((AndroidUtilities.isTablet() ? 80 : 72) - 16), 0, 0, 0);
             addView(container, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
@@ -391,6 +400,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             subtitleTextView.setTextColor(0xffffffff);
             subtitleTextView.setEllipsizeByGradient(true);
             container.addView(subtitleTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 20, Gravity.LEFT | Gravity.TOP, 16, 0, 0, 0));
+            if (castButton != null) {
+                container.addView(castButton, LayoutHelper.createFrame(24, 24, Gravity.END | Gravity.CENTER_VERTICAL, 0, 0, 80, 0));
+            }
         }
 
         public void setTextShadows(boolean applyShadows) {
@@ -544,9 +556,13 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 rightPaddingAnimator = ValueAnimator.ofFloat(this.rightPadding, rightPadding);
                 rightPaddingAnimator.addUpdateListener(anm -> {
                     this.rightPadding = (float) anm.getAnimatedValue();
-                    titleTextView[0].setRightPadding((int) rightPadding);
-                    titleTextView[1].setRightPadding((int) rightPadding);
-                    subtitleTextView.setRightPadding(rightPadding);
+                    int extraPadding = dp(24);
+
+                    titleTextView[0].setRightPadding((int) rightPadding + extraPadding);
+                    subtitleTextView.setRightPadding(rightPadding + extraPadding);
+                    FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) castButton.getLayoutParams();
+                    layoutParams.setMarginEnd((int)rightPadding);
+                    castButton.setLayoutParams(layoutParams);
                 });
                 rightPaddingAnimator.addListener(new AnimatorListenerAdapter() {
                     @Override
@@ -559,8 +575,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 rightPaddingAnimator.start();
             } else {
                 this.rightPadding = rightPadding;
-                titleTextView[0].setRightPadding((int) rightPadding);
-                subtitleTextView.setRightPadding(rightPadding);
+                int extraPadding = dp(24);
+                titleTextView[0].setRightPadding((int) rightPadding + extraPadding);
+                subtitleTextView.setRightPadding(rightPadding + extraPadding);
+                FrameLayout.LayoutParams layoutParams = (FrameLayout.LayoutParams) castButton.getLayoutParams();
+                layoutParams.setMarginEnd((int)rightPadding);
+                castButton.setLayoutParams(layoutParams);
             }
         }
 
@@ -815,6 +835,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     private ActionBarMenuItem sendItem;
     private ActionBarMenuItem editItem;
     private ActionBarMenuItem pipItem;
+    MediaRouteButton castButton = null;
     private ActionBarMenuItem masksItem;
     private LinearLayout itemsLayout;
     private ChooseQualityLayout.QualityIcon qualityIcon;
@@ -4731,7 +4752,35 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         actionBar.setItemsBackgroundColor(Theme.ACTION_BAR_WHITE_SELECTOR_COLOR, false);
         actionBar.setItemsColor(Color.WHITE, false);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBarContainer = new PhotoViewerActionBarContainer(activity);
+        if (ChromeCastController.getInstance().isGooglePlayServicesAvailable) {
+            try {
+                castButton = new MediaRouteButton(parentActivity);
+                CastButtonFactory.setUpMediaRouteButton(parentActivity.getApplicationContext(), castButton);
+                int tintColor = Color.WHITE;
+                ContextThemeWrapper castContext = new ContextThemeWrapper(parentActivity, androidx.mediarouter.R.style.Theme_MediaRouter);
+                TypedArray attrs = castContext.obtainStyledAttributes(null, androidx.mediarouter.R.styleable.MediaRouteButton, androidx.mediarouter.R.attr.mediaRouteButtonStyle, 0);
+                Drawable drawable = attrs.getDrawable(androidx.mediarouter.R.styleable.MediaRouteButton_externalRouteEnabledDrawable);
+                attrs.recycle();
+                DrawableCompat.setTint(drawable, tintColor);
+                drawable.setState(castButton.getDrawableState());
+                castButton.setRemoteIndicatorDrawable(drawable);
+                ChromeCastController.getInstance().addVideoPlayerListener(new ChromeCastController.VideoPlayerPausePlay() {
+                    @Override
+                    public void pause() {
+                        pauseVideoOrWeb();
+                    }
+
+                    @Override
+                    public void play() {
+                        playVideoOrWeb();
+                    }
+                });
+            } catch (Exception exception) {
+
+            }
+        }
+        actionBarContainer = new PhotoViewerActionBarContainer(activity, castButton);
+
         actionBar.addView(actionBarContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
         containerView.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
@@ -8444,6 +8493,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 view.setScaleY(1f);
             }
         }
+        ChromeCastController.getInstance().release();
     }
 
     private void onUserLeaveHint() {
@@ -14464,6 +14514,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
         }
         detectFaces();
+        setChromeCastUri();
     }
 
     private void resetIndexForDeferredImageLoading() {
@@ -21161,5 +21212,54 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 Browser.openUrl(LaunchActivity.instance != null ? LaunchActivity.instance : activityContext, Uri.parse(currentMessageObject.sponsoredUrl), true, false, false, null, null, false, MessagesController.getInstance(currentAccount).sponsoredLinksInappAllow);
             }
         });
+    }
+
+    private void setChromeCastUri() {
+        try {
+            File f = null;
+            boolean isVideo = false;
+
+            if (currentMessageObject != null) {
+                isVideo = currentMessageObject.isVideo();
+                        /*if (currentMessageObject.messageOwner.media instanceof TLRPC.TL_messageMediaWebPage) {
+                            AndroidUtilities.openUrl(parentActivity, currentMessageObject.messageOwner.media.webpage.url);
+                            return;
+                        }*/
+                if (!TextUtils.isEmpty(currentMessageObject.messageOwner.attachPath)) {
+                    f = new File(currentMessageObject.messageOwner.attachPath);
+                    if (!f.exists()) {
+                        f = null;
+                    }
+                }
+                if (f == null) {
+                    f = FileLoader.getInstance(currentAccount).getPathToMessage(currentMessageObject.messageOwner);
+                }
+            } else if (currentFileLocationVideo != null) {
+                f = FileLoader.getInstance(currentAccount).getPathToAttach(getFileLocation(currentFileLocationVideo), getFileLocationExt(currentFileLocationVideo), avatarsDialogId != 0 || isEvent);
+            } else if (pageBlocksAdapter != null) {
+                f = pageBlocksAdapter.getFile(currentIndex);
+            }
+            if (f != null && !f.exists()) {
+                f = new File(FileLoader.getDirectory(FileLoader.MEDIA_DIR_CACHE), f.getName());
+            }
+
+            if (f != null && f.exists()) {
+                String type;
+                Uri uri;
+                if (isVideo) {
+                    type = "video/mp4";
+                } else {
+                    if (currentMessageObject != null) {
+                        type = currentMessageObject.getMimeType();
+                    } else {
+                        type = "image/jpeg";
+                    }
+                }
+                uri = Uri.fromFile(f);
+                ChromeCastController.getInstance().setItem(uri, type);
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
     }
 }
