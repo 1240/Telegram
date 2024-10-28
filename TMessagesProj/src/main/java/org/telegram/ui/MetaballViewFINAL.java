@@ -117,7 +117,7 @@ public class MetaballViewFINAL extends View {
         gradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
         circleSize = dpToPx(32f);
-        popupSize = dpToPx(58f);
+        popupSize = dpToPx(60f);
 
         tooltipPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         tooltipPaint.setStyle(Paint.Style.FILL);
@@ -914,7 +914,7 @@ public class MetaballViewFINAL extends View {
         circleX = x + dpToPx(16);
         circleY = finalY;
         popupX = circleX;
-        popupY = circleY - dpToPx(56);
+        popupY = circleY - dpToPx(60);
         sendingMessageObjects = messages;
 
         fetchDialogs();
