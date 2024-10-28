@@ -656,7 +656,7 @@ public class MetaballViewFINAL extends View {
                 ImageReceiver imageReceiver = imageReceivers[i];
                 imageReceiver.setRoundRadius((int) popupSize);
                 if (animationProgress >= 1f) {
-                    float alfa;
+                    final float alfa;
                     float scaleFactor;
 
                     if (highlightedAvatarIndex == -1 && previousHighlightedAvatarIndex != -1) {
@@ -1139,7 +1139,6 @@ public class MetaballViewFINAL extends View {
         previousTooltipProgress = tooltipProgress;
         tooltipAnimator = ValueAnimator.ofFloat(0, 1);
         tooltipAnimator.setDuration(150);
-        animator.setInterpolator(new OvershootInterpolator(1.05f));
         tooltipAnimator.addUpdateListener(animation -> {
             tooltipProgress = (float) animation.getAnimatedValue();
             postInvalidateOnAnimation();
