@@ -221,7 +221,7 @@ public class MetaballViewFINAL extends View {
         return color;
     }
 
-    private static int getAverageColor(Bitmap bitmap, int startX, int startY, int regionWidth, int regionHeight) {
+    private int getAverageColor(Bitmap bitmap, int startX, int startY, int regionWidth, int regionHeight) {
         long redSum = 0;
         long greenSum = 0;
         long blueSum = 0;
@@ -252,7 +252,7 @@ public class MetaballViewFINAL extends View {
         return Color.rgb(avgRed, avgGreen, avgBlue);
     }
 
-    public static List<Integer> getTopTwoColors(Bitmap bitmap) {
+    private List<Integer> getTopTwoColors(Bitmap bitmap) {
         List<Integer> topColors = new ArrayList<>();
 
         if (bitmap == null || bitmap.isRecycled()) {
@@ -301,37 +301,35 @@ public class MetaballViewFINAL extends View {
         return adjustedColors;
     }
 
-    public static int lightenColor(int color, float factor) {
+    float[] hsv = new float[3];
+    private int lightenColor(int color, float factor) {
         if (isColorVeryDarkHSV(color, 55f)) return Color.GRAY;
-        float[] hsv = new float[3];
         Color.colorToHSV(color, hsv);
         hsv[2] = hsv[2] * factor;
         hsv[2] = Math.min(hsv[2], 1);
         return Color.HSVToColor(Color.alpha(color), hsv);
     }
 
-    public static boolean isColorVeryDarkHSV(int color, float valueThreshold) {
-        float[] hsv = new float[3];
+    private boolean isColorVeryDarkHSV(int color, float valueThreshold) {
         Color.colorToHSV(color, hsv);
         return hsv[2] < valueThreshold;
     }
 
-    public static int darkenColor(int color, float factor) {
-        float[] hsv = new float[3];
+    private int darkenColor(int color, float factor) {
         Color.colorToHSV(color, hsv);
         hsv[2] = hsv[2] * factor;
         hsv[2] = Math.max(hsv[2], 0);
         return Color.HSVToColor(Color.alpha(color), hsv);
     }
 
-    public static boolean isColorTooLight(int color, float threshold) {
+    private boolean isColorTooLight(int color, float threshold) {
         double luminance = 0.299 * Color.red(color) +
                 0.587 * Color.green(color) +
                 0.114 * Color.blue(color);
         return luminance > threshold;
     }
 
-    public static boolean isColorTooDark(int color, float threshold) {
+    private boolean isColorTooDark(int color, float threshold) {
         double luminance = 0.299 * Color.red(color) +
                 0.587 * Color.green(color) +
                 0.114 * Color.blue(color);
