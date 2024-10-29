@@ -70,11 +70,15 @@ public class MetaballViewFINAL extends View {
     private float targetWidth;
     private int circleColor;
     private int rectColor;
+
+    int[] gradientColors1 = {0x00000000, 0x00000000};
+    int[] gradientColors2 = {0x00000000, 0x00000000};
+    final float[] gradientStops = {0.5f, 1.0f};
+
     private int contentPaddingTop;
     private Paint shadowPaint;
     private ArrayList<MessageObject> sendingMessageObjects;
     private final View parentView;
-    private boolean darkTheme = Theme.getActiveTheme().isDark();
     private Theme.ResourcesProvider resourcesProvider;
     //    private Paint thresholdPaint;
     private final long popupStartTime;
@@ -98,6 +102,9 @@ public class MetaballViewFINAL extends View {
         circleColor = Theme.getThemePaint(Theme.key_paint_chatActionBackground).getColor();
         targetIconAlfa = Color.alpha(circleColor);
         circleColor = Color.argb(255, Color.red(circleColor), Color.green(circleColor), Color.blue(circleColor));
+        gradientColors1[0] = circleColor;
+        gradientColors2[0] = rectColor;
+
         circlePaint1 = new Paint(Paint.ANTI_ALIAS_FLAG);
         circlePaint1.setColor(circleColor);
         circlePaint2 = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -266,9 +273,9 @@ public class MetaballViewFINAL extends View {
         return topColors;
     }
 
+    int[] adjustedColors = new int[2];
     private int[] getAdjusted2Color(Bitmap bitmap, int[] prevColor) {
         List<Integer> topColors = getTopTwoColors(bitmap);
-        int[] adjustedColors = new int[2];
 
         float lightThreshold = 200f;
         float darkThreshold = 55f;
@@ -359,7 +366,6 @@ public class MetaballViewFINAL extends View {
 
         return Color.rgb(avgRed, avgGreen, avgBlue);
     }
-
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -471,8 +477,8 @@ public class MetaballViewFINAL extends View {
         if (animationProgress <= 0.80f) {
             gradient1 = new RadialGradient(
                     x, newY, size / 1.2f,
-                    new int[]{circleColor, 0x00000000},
-                    new float[]{0.5f, 1.0f},
+                    gradientColors1,
+                    gradientStops,
                     Shader.TileMode.CLAMP
             );
             circlePaint1.setShader(gradient1);
@@ -544,8 +550,8 @@ public class MetaballViewFINAL extends View {
 
         gradient2 = new RadialGradient(
                 newX, newY, Math.max(newSize, 0.001f),
-                new int[]{rectColor, 0x00000000},
-                new float[]{0.5f, 1.0f},
+                gradientColors2,
+                gradientStops,
                 Shader.TileMode.CLAMP
         );
         gradientPaint.setShader(gradient2);
