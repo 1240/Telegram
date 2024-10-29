@@ -98,7 +98,7 @@ public class MetaballViewFINAL extends View {
 //        thresholdPaint.setFilterBitmap(true);
 //        thresholdPaint.setColorFilter(new PorterDuffColorFilter(Color.argb(THRESHOLD, 0, 0, 0), PorterDuff.Mode.DST_IN));
 //        choreographer = Choreographer.getInstance();
-        rectColor = getThemedColor(darkTheme ? Theme.key_voipgroup_searchBackground : Theme.key_dialogSearchBackground);
+        rectColor = getThemedColor(Theme.key_actionBarDefaultSubmenuBackground);
         circleColor = Theme.getThemePaint(Theme.key_paint_chatActionBackground).getColor();
         targetIconAlfa = Color.alpha(circleColor);
         circleColor = Color.argb(255, Color.red(circleColor), Color.green(circleColor), Color.blue(circleColor));
@@ -900,7 +900,7 @@ public class MetaballViewFINAL extends View {
     private int getTouchedAvatarIndex(float x, float y) {
         for (int i = 0; i < avatarRects.size(); i++) {
             RectF rect = avatarRects.get(i);
-            if (rect.left <= x && x <= rect.right && rect.top - dpToPx(80) <= y && y <= rect.bottom + dpToPx(80)) {
+            if (rect.left <= x && x <= rect.right && rect.top - dpToPx(20) <= y && y <= rect.bottom + dpToPx(20)) {
                 return i;
             }
         }

@@ -36306,7 +36306,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                 }
                 float finalY = popupY - ActionBar.getCurrentActionBarHeight() - AndroidUtilities.statusBarHeight + dp(16);
-                popupView.init(cell.sideStartX, arrayList, finalY);
+                popupView.init(cell.getLeft() + cell.sideStartX, arrayList, finalY);
                 contentView.addView(popupView);
                 cell.showSideButton1240 = true;
             } else {
