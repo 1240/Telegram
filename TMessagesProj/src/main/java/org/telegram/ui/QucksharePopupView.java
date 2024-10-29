@@ -46,7 +46,7 @@ import org.telegram.ui.Components.AvatarDrawable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MetaballViewFINAL extends View {
+public class QucksharePopupView extends View {
 
     private final ChatActivity chatActivity;
     private int currentAccount = UserConfig.selectedAccount;
@@ -83,7 +83,7 @@ public class MetaballViewFINAL extends View {
     //    private Paint thresholdPaint;
     private final long popupStartTime;
 
-    public MetaballViewFINAL(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop, long popupStartTime, float x, ArrayList<MessageObject> messages, float finalY) {
+    public QucksharePopupView(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop, long popupStartTime, float x, ArrayList<MessageObject> messages, float finalY) {
         super(context);
         this.parentView = parentView;
         this.drawable = drawable;

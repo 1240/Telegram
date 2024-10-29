@@ -366,7 +366,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
     private QuickRepliesEmptyView quickRepliesEmptyView;
     private BusinessLinksEmptyView businessLinksEmptyView;
     public ChatActivityFragmentView contentView;
-    public MetaballViewFINAL popupView;
+    public QucksharePopupView popupView;
     public boolean popupViewUppear;
     private ChatBigEmptyView bigEmptyView;
     private ArrayList<View> actionModeViews = new ArrayList<>();
@@ -36276,7 +36276,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                 }
                 float finalY = popupY - ActionBar.getCurrentActionBarHeight() - AndroidUtilities.statusBarHeight + dp(16);
-                popupView = new MetaballViewFINAL(getContext(), getThemedDrawable(Theme.key_drawable_shareIcon),
+                popupView = new QucksharePopupView(getContext(), getThemedDrawable(Theme.key_drawable_shareIcon),
                         ChatActivity.this, contentView, getResourceProvider(),
                         contentView.getHeight(), contentView.getWidth(), contentPaddingTop, localPopupStartTime,
                         cell.getLeft() + cell.sideStartX, arrayList, finalY
