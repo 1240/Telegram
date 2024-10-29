@@ -148,14 +148,33 @@ public class MetaballViewFINAL extends View {
     float drawingAreaTop;
     float drawingAreaBottom;
     float drawingAreaHeight;
+    float drawingAreaLeft;
+    float drawingAreaRight;
+    float drawingAreaWidth;
 
     private void calculateDrawingArea() {
+        float circle1Movement = dpToPx(12f) * 2;
+        float circle1dMovement = dpToPx(18f) + dpToPx(6f);
 
-        float circle1UpwardMovement = dpToPx(12f) * 2;
-        float circle1DownwardMovement = dpToPx(18f) + dpToPx(6f);
+        float circle1MinX = circleX - circle1Movement;
+        float circle1MaxX = circleX + circle1dMovement;
 
-        float circle1MinY = circleY - circle1UpwardMovement;
-        float circle1MaxY = circleY + circle1DownwardMovement;
+        float popupMinX = popupX - dpToPx(0);
+        float popupMaxX = popupX + popupSize;
+
+        float minX = Math.min(circle1MinX, popupMinX);
+        float maxX = Math.max(circle1MaxX, popupMaxX);
+
+        float padding = dpToPx(1f);
+        minX -= padding + dpToPx(40f);
+        maxX += padding;
+
+        drawingAreaLeft = minX;
+        drawingAreaRight = maxX;
+        drawingAreaWidth = drawingAreaRight - drawingAreaLeft;
+
+        float circle1MinY = circleY - circle1Movement;
+        float circle1MaxY = circleY + circle1dMovement;
 
         float popupMinY = popupY - dpToPx(0);
         float popupMaxY = popupY + popupSize;
@@ -163,7 +182,6 @@ public class MetaballViewFINAL extends View {
         minY = Math.min(circle1MinY, popupMinY);
         maxY = Math.max(circle1MaxY, popupMaxY);
 
-        float padding = dpToPx(1f);
         minY -= padding + dpToPx(40f);
         maxY += padding;
 
@@ -171,7 +189,7 @@ public class MetaballViewFINAL extends View {
         drawingAreaBottom = maxY;
         drawingAreaHeight = drawingAreaBottom - drawingAreaTop;
 
-        bitmap = Bitmap.createBitmap(w, (int) drawingAreaHeight, Bitmap.Config.ARGB_8888);
+        bitmap = Bitmap.createBitmap((int)drawingAreaWidth, (int) drawingAreaHeight, Bitmap.Config.ARGB_8888);
         tempCanvas = new Canvas(bitmap);
 
         bitmapWidth = bitmap.getWidth();
@@ -375,7 +393,7 @@ public class MetaballViewFINAL extends View {
             bitmap.eraseColor(0);
 
             tempCanvas.save();
-            tempCanvas.translate(0, -drawingAreaTop);
+            tempCanvas.translate(-drawingAreaLeft, -drawingAreaTop);
         }
 
         if (!animationFinished) {
@@ -391,15 +409,14 @@ public class MetaballViewFINAL extends View {
             popupPaint.setAlpha(alpha);
         }
 
-        drawRoundedRect(currentCanvas, circleX, circleY, circleSize, canvas);
-
         if (!animationFinished) {
             tempCanvas.restore();
 
             applyThreshold();
-            canvas.drawBitmap(bitmap, 0, drawingAreaTop, gradientPaint);
+            canvas.drawBitmap(bitmap, drawingAreaLeft, drawingAreaTop, gradientPaint);
         }
 
+        drawRoundedRect(canvas, circleX, circleY, circleSize, canvas);
     }
 
 //    private void calculateColors() {
