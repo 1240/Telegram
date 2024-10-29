@@ -1093,7 +1093,7 @@ public class MetaballViewFINAL extends View {
 
     public void startAnimation() {
         animator = ValueAnimator.ofFloat(0f, 1f);
-        animator.setDuration(1000);
+        animator.setDuration(600);
         animator.setInterpolator(new OvershootInterpolator(1.01f));
 
         animator.addUpdateListener(animation -> {
