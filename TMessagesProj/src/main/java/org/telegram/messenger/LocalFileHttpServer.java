@@ -26,7 +26,7 @@ public class LocalFileHttpServer extends NanoHTTPD {
             ParcelFileDescriptor parcelFileDescriptor = application.getContentResolver().openFileDescriptor(fileUri, "r");
             FileInputStream fis = new FileInputStream(parcelFileDescriptor.getFileDescriptor());
             return newChunkedResponse(Response.Status.OK, "video/mp4", fis);
-        } catch (IOException e) {
+        } catch (Throwable e) {
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "File not found");
         }
     }

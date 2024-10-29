@@ -21257,6 +21257,27 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 }
                 uri = Uri.fromFile(f);
                 ChromeCastController.getInstance().setItem(uri, type);
+            } else {
+                f = FileLoader.getInstance(currentAccount).getPathToAttach(currentMessageObject.getDocument(), null, false, true);
+                if (f == null || !f.exists()) {
+                    f = FileLoader.getInstance(currentAccount).getPathToAttach(currentMessageObject.getDocument(), null, true, true);
+                }
+                if (f != null && f.exists()) {
+                    MediaController.saveFile(f.toString(), parentActivity, 1, null, null, uri -> BulletinFactory.createSaveToGalleryBulletin(containerView, true, 0xf9222222, 0xffffffff).show());
+                }
+                String type;
+                Uri uri;
+                if (isVideo) {
+                    type = "video/mp4";
+                } else {
+                    if (currentMessageObject != null) {
+                        type = currentMessageObject.getMimeType();
+                    } else {
+                        type = "image/jpeg";
+                    }
+                }
+                uri = Uri.fromFile(f);
+                ChromeCastController.getInstance().setItem(uri, type);
             }
         } catch (Exception e) {
             FileLog.e(e);
