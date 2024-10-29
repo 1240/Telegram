@@ -76,9 +76,10 @@ public class MetaballViewFINAL extends View {
     private final View parentView;
     private boolean darkTheme = Theme.getActiveTheme().isDark();
     private Theme.ResourcesProvider resourcesProvider;
+    //    private Paint thresholdPaint;
     private final long popupStartTime;
 
-    public MetaballViewFINAL(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop, long popupStartTime) {
+    public MetaballViewFINAL(Context context, Drawable drawable, ChatActivity chatActivity, View parentView, Theme.ResourcesProvider resourcesProvider, int h, int w, int contentPaddingTop, long popupStartTime, float x, ArrayList<MessageObject> messages, float finalY) {
         super(context);
         this.parentView = parentView;
         this.drawable = drawable;
@@ -88,12 +89,7 @@ public class MetaballViewFINAL extends View {
         this.w = w;
         this.contentPaddingTop = contentPaddingTop;
         this.popupStartTime = popupStartTime;
-        init();
-    }
 
-//    private Paint thresholdPaint;
-
-    private void init() {
 //        thresholdPaint = new Paint();
 //        thresholdPaint.setFilterBitmap(true);
 //        thresholdPaint.setColorFilter(new PorterDuffColorFilter(Color.argb(THRESHOLD, 0, 0, 0), PorterDuff.Mode.DST_IN));
@@ -127,6 +123,18 @@ public class MetaballViewFINAL extends View {
         textPaint.setTextSize(dpToPx(11));
         textPaint.setTypeface(AndroidUtilities.bold());
         textPaint.setTextAlign(Paint.Align.CENTER);
+
+        circleX = x + dpToPx(16);
+        circleY = finalY;
+        popupX = circleX;
+        popupY = circleY - dpToPx(60);
+        sendingMessageObjects = messages;
+
+        fetchDialogs();
+        float avatarCount = dialogs.size();
+        targetWidth = (popupSize - avatarsPadding * 2) * avatarCount + (avatarCount + 1) * avatarsPadding;
+        addAvatars();
+        calculateDrawingArea();
     }
 
     float minY, maxY;
@@ -919,21 +927,6 @@ public class MetaballViewFINAL extends View {
 
     private float dpToPx(float dp) {
         return AndroidUtilities.dp2(dp);
-    }
-
-    public void init(float x, ArrayList<MessageObject> messages, float finalY) {
-        circleX = x + dpToPx(16);
-        circleY = finalY;
-        popupX = circleX;
-        popupY = circleY - dpToPx(60);
-        sendingMessageObjects = messages;
-
-        fetchDialogs();
-        float avatarCount = dialogs.size();
-        targetWidth = (popupSize - avatarsPadding * 2) * avatarCount + (avatarCount + 1) * avatarsPadding;
-        calculateDrawingArea();
-        addAvatars();
-
     }
 
     private ArrayList<Pair<Long, TLRPC.Dialog>> dialogs = new ArrayList<>();

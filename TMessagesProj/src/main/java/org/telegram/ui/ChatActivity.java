@@ -36245,36 +36245,6 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 swipeBackEnabled = false;
                 popupViewUppear = true;
                 localPopupStartTime = SystemClock.elapsedRealtime();
-                popupView = new MetaballViewFINAL(getContext(), getThemedDrawable(Theme.key_drawable_shareIcon),
-                        ChatActivity.this, contentView, getResourceProvider(),
-                        contentView.getHeight(), contentView.getWidth(), contentPaddingTop, localPopupStartTime
-                ) {
-                    @Override
-                    protected void onSend(TLRPC.Dialog did, int count, TLRPC.TL_forumTopic topic) {
-                        createUndoView();
-                        if (undoView == null) {
-                            return;
-                        }
-                        if (did.id != getUserConfig().getClientUserId() || !BulletinFactory.of(ChatActivity.this).showForwardedBulletinWithTag(did.id, count)) {
-                            undoView.showWithAction(did.id, UndoView.ACTION_FWD_MESSAGES, count, topic, null, null);
-                        }
-                    }
-
-                    @Override
-                    protected void onAnimationFinished() {
-                        cell.showSideButton1240 = false;
-                        cell.invalidateOutbounds();
-                    }
-
-                    @Override
-                    protected void onCollapseAnimationFinished(long popupStartTime) {
-                        super.onCollapseAnimationFinished(popupStartTime);
-                        if (localPopupStartTime == popupStartTime) {
-                            swipeBackEnabled = true;
-                            popupViewUppear = false;
-                        }
-                    }
-                };
                 ArrayList<MessageObject> arrayList = null;
                 MessageObject messageObject = cell.getMessageObject();
                 if (messageObject.getGroupId() != 0) {
@@ -36306,7 +36276,38 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                     }
                 }
                 float finalY = popupY - ActionBar.getCurrentActionBarHeight() - AndroidUtilities.statusBarHeight + dp(16);
-                popupView.init(cell.getLeft() + cell.sideStartX, arrayList, finalY);
+                popupView = new MetaballViewFINAL(getContext(), getThemedDrawable(Theme.key_drawable_shareIcon),
+                        ChatActivity.this, contentView, getResourceProvider(),
+                        contentView.getHeight(), contentView.getWidth(), contentPaddingTop, localPopupStartTime,
+                        cell.getLeft() + cell.sideStartX, arrayList, finalY
+                ) {
+                    @Override
+                    protected void onSend(TLRPC.Dialog did, int count, TLRPC.TL_forumTopic topic) {
+                        createUndoView();
+                        if (undoView == null) {
+                            return;
+                        }
+                        if (did.id != getUserConfig().getClientUserId() || !BulletinFactory.of(ChatActivity.this).showForwardedBulletinWithTag(did.id, count)) {
+                            undoView.showWithAction(did.id, UndoView.ACTION_FWD_MESSAGES, count, topic, null, null);
+                        }
+                    }
+
+                    @Override
+                    protected void onAnimationFinished() {
+                        cell.showSideButton1240 = false;
+                        cell.invalidateOutbounds();
+                    }
+
+                    @Override
+                    protected void onCollapseAnimationFinished(long popupStartTime) {
+                        super.onCollapseAnimationFinished(popupStartTime);
+                        if (localPopupStartTime == popupStartTime) {
+                            swipeBackEnabled = true;
+                            popupViewUppear = false;
+                        }
+                    }
+                };
+
                 contentView.addView(popupView);
                 cell.showSideButton1240 = true;
             } else {
