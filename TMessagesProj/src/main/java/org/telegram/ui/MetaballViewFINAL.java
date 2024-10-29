@@ -628,7 +628,11 @@ public class MetaballViewFINAL extends View {
                 rect.right - dpToPx(20),
                 rect.bottom - dpToPx(20)
         );
-        canvas1.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint);
+        if (animationProgress > 0.9) {
+            float shadowPA = (animationProgress - 0.9f) / 0.1f;
+            shadowPaint.setAlpha((int)(255*shadowPA));
+            canvas1.drawRoundRect(shadowRect, cornerRadius, cornerRadius, shadowPaint);
+        }
         canvas.drawRoundRect(rect, cornerRadius, cornerRadius, popupPaint);
 
         drawAvatars(canvas, rect, canvas1);
