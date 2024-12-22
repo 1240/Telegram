@@ -711,7 +711,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
 
         }
 
-        public void onInit(boolean hasVideo, boolean hasPhoto, boolean hasDocuments) {
+        public void onInit(boolean hasVideo, boolean hasPhoto, boolean hasDocuments, boolean isStoryAudioPicker) {
 
         }
 
@@ -4979,7 +4979,7 @@ public class ChatAttachAlert extends BottomSheet implements NotificationCenter.N
         if (!(baseFragment instanceof ChatActivity && avatarPicker != 2)) {
             commentTextView.setVisibility(allowEnterCaption ? View.VISIBLE : View.INVISIBLE);
         }
-        photoLayout.onInit(videosEnabled, photosEnabled, documentsEnabled);
+        photoLayout.onInit(videosEnabled, photosEnabled, documentsEnabled, isStoryAudioPicker || isStoryLocationPicker);
         commentTextView.hidePopup(true);
         topCommentTextView.hidePopup(true);
         enterCommentEventSent = false;

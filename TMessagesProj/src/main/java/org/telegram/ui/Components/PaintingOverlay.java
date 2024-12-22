@@ -1,5 +1,8 @@
 package org.telegram.ui.Components;
 
+import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.VideoEditedInfo.MediaEntity.TYPE_STICKER;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -25,11 +28,16 @@ import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.ImageLocation;
 import org.telegram.messenger.ImageReceiver;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.VideoEditedInfo;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.Paint.Views.EditTextOutline;
+import org.telegram.ui.Components.Paint.Views.LocationMarker;
 import org.telegram.ui.Components.Paint.Views.PaintTextOptionsView;
+import org.telegram.ui.Components.Paint.Views.ReactionWidgetEntityView;
+import org.telegram.ui.Components.Reactions.ReactionImageHolder;
+import org.telegram.ui.Components.Reactions.ReactionsLayoutInBubble;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,6 +88,26 @@ public class PaintingOverlay extends FrameLayout {
                     continue;
                 }
                 if (child instanceof EditTextOutline) {
+                    child.measure(MeasureSpec.makeMeasureSpec(entity.viewWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    float scale;
+                    if (entity.customTextView) {
+                        scale = entity.width * getMeasuredWidth() / entity.viewWidth;
+                    } else {
+                        scale = entity.scale * (entity.textViewWidth * width / entity.viewWidth);
+                    }
+                    child.setScaleX(scale);
+                    child.setScaleY(scale);
+                } else if (child instanceof LocationMarker) {
+                    child.measure(MeasureSpec.makeMeasureSpec(entity.viewWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    float scale;
+                    if (entity.customTextView) {
+                        scale = entity.width * getMeasuredWidth() / entity.viewWidth;
+                    } else {
+                        scale = entity.scale * (entity.textViewWidth * width / entity.viewWidth);
+                    }
+                    child.setScaleX(scale);
+                    child.setScaleY(scale);
+                } else if (child instanceof ReactionWidgetEntityView) {
                     child.measure(MeasureSpec.makeMeasureSpec(entity.viewWidth, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                     float scale;
                     if (entity.customTextView) {
@@ -140,6 +168,22 @@ public class PaintingOverlay extends FrameLayout {
                         x = (int) (width * entity.textViewX) - child.getMeasuredWidth() / 2;
                         y = (int) (height * entity.textViewY) - child.getMeasuredHeight() / 2;
                     }
+                } else if (child instanceof LocationMarker) {
+                    if (entity.customTextView) {
+                        x = (int) (width * (entity.x + entity.width / 2f)) - child.getMeasuredWidth() / 2;
+                        y = (int) (height * (entity.y + entity.height / 2f)) - child.getMeasuredHeight() / 2;
+                    } else {
+                        x = (int) (width * entity.textViewX) - child.getMeasuredWidth() / 2;
+                        y = (int) (height * entity.textViewY) - child.getMeasuredHeight() / 2;
+                    }
+                } else if (child instanceof ReactionWidgetEntityView) {
+                    if (entity.customTextView) {
+                        x = (int) (width * (entity.x + entity.width / 2f)) - child.getMeasuredWidth() / 2;
+                        y = (int) (height * (entity.y + entity.height / 2f)) - child.getMeasuredHeight() / 2;
+                    } else {
+                        x = (int) (width * entity.textViewX) - child.getMeasuredWidth() / 2;
+                        y = (int) (height * entity.textViewY) - child.getMeasuredHeight() / 2;
+                    }
                 } else {
                     x = (int) (width * entity.x);
                     y = (int) (height * entity.y);
@@ -185,7 +229,7 @@ public class PaintingOverlay extends FrameLayout {
             for (int a = 0, N = entities.size(); a < N; a++) {
                 VideoEditedInfo.MediaEntity entity = entities.get(a);
                 View child = null;
-                if (entity.type == 0) {
+                if (entity.type == VideoEditedInfo.MediaEntity.TYPE_STICKER) {
                     BackupImageView imageView = new BackupImageView(getContext());
                     imageView.setLayerNum(4 | 8);
                     imageView.setAspectFit(true);
@@ -210,7 +254,7 @@ public class PaintingOverlay extends FrameLayout {
                         imageView.setScaleX(-1);
                     }
                     entity.view = child = imageView;
-                } else if (entity.type == 1) {
+                } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT) {
                     EditTextOutline editText = new EditTextOutline(getContext()) {
                         @Override
                         public boolean dispatchTouchEvent(MotionEvent event) {
@@ -297,6 +341,63 @@ public class PaintingOverlay extends FrameLayout {
                     editText.setHandlesColor(textColor);
                     editText.setHighlightColor(Theme.multAlpha(textColor, .4f));
                     entity.view = child = editText;
+                } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_PHOTO) {
+                    BackupImageView imageView = new BackupImageView(getContext());
+                    imageView.setLayerNum(4 | 8);
+                    imageView.setAspectFit(true);
+                    ImageReceiver imageReceiver = imageView.getImageReceiver();
+                    String path = entity.segmentedPath != null && !entity.segmentedPath.isEmpty() ? entity.segmentedPath : entity.text;
+                    imageReceiver.setImage(ImageLocation.getForPath(path), null, null, null, ImageLocation.getForPath(path), null, null, 0, "webp", entity.parentObject, 1);
+                    if ((entity.subType & 2) != 0) {
+                        imageView.setScaleX(-1);
+                    }
+                    entity.view = child = imageView;
+                } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION) {
+                    BackupImageView imageView = new BackupImageView(getContext());
+                    imageView.setLayerNum(4 | 8);
+                    imageView.setAspectFit(true);
+                    ImageReceiver imageReceiver = imageView.getImageReceiver();
+                    imageReceiver.setImageBitmap(entity.bitmap);
+                    entity.view = child = imageView;
+                }else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_REACTION) {
+                    int w = (int)entity.viewWidth, h = (int)entity.viewHeight;
+                    if (w <= 0) w = getMeasuredWidth();
+                    if (h <= 0) h = getMeasuredHeight();
+                    float x = w / 2.0f;
+                    float y = h / 2.0f;
+                    Point position = new Point(x, y);
+                    ReactionWidgetEntityView view = new ReactionWidgetEntityView(getContext(), position, new Size(dp(106), dp(106)));
+                    ReactionsLayoutInBubble.VisibleReaction visibleReaction = ReactionsLayoutInBubble.VisibleReaction.fromTL(entity.mediaArea.reaction);
+                    view.setCurrentReaction(visibleReaction, false);
+                    if (entity.mediaArea.flipped) {
+                        view.mirror(false);
+                    }
+                    if (entity.mediaArea.dark) {
+                        view.changeStyle(false);
+                    }
+//                    view.setX(entity.x * w - entity.viewWidth * (1 - entity.scale) / 2);
+//                    view.setY(entity.y * h - entity.viewHeight * (1 - entity.scale) / 2);
+//                    view.setPosition(new Point(view.getX() + entity.viewWidth / 2f, view.getY() + entity.viewHeight / 2f));
+                    view.setScale(entity.scale);
+                    view.setRotation((float) (-entity.rotation / Math.PI * 180));
+                    entity.view = child = view;
+                }else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_ROUND) {
+                } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_MESSAGE) {
+                }else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LINK) {
+                    BackupImageView imageView = new BackupImageView(getContext());
+                    imageView.setLayerNum(4 | 8);
+                    imageView.setAspectFit(true);
+                    ImageReceiver imageReceiver = imageView.getImageReceiver();
+                    imageReceiver.setImageBitmap(entity.bitmap);
+                    entity.view = child = imageView;
+                } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_WEATHER) {
+                    LocationMarker marker = new LocationMarker(getContext(), LocationMarker.VARIANT_WEATHER, entity.density, 0);
+                    marker.setType(entity.subType, entity.color);
+                    marker.setText(entity.text);
+                    marker.setCodeEmoji(UserConfig.selectedAccount, entity.weather.emoji);
+                    marker.setMaxWidth(entity.viewWidth);
+                    marker.setIsVideo(true);
+                    entity.view = child = marker;
                 }
                 if (child != null) {
                     addView(child);

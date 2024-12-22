@@ -645,4 +645,15 @@ public class RenderView extends TextureView {
     }
 
     protected void selectBrush(Brush brush) {}
+
+    public void updateBitmaps(Bitmap newBitmap, Bitmap newBlurBitmap) {
+        this.bitmap = newBitmap;
+        this.blurBitmap = newBlurBitmap;
+
+        performInContext(() -> {
+            painting.setBitmap(this.bitmap, this.blurBitmap);
+            internal.requestRender();
+        });
+    }
+
 }

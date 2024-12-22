@@ -18622,7 +18622,7 @@ public class ChatActivity extends BaseFragment implements NotificationCenter.Not
                 if (editingMessageObject != object) {
                     return;
                 }
-                if (entry.isCropped || entry.isPainted || entry.isFiltered || videoEditedInfo != null) {
+                if (entry.isCropped || entry.isPainted || entry.isFiltered || entry.editedMedia || videoEditedInfo != null) {
                     sendMedia(entry, videoEditedInfo, notify, scheduleDate, forceDocument);
                 } else {
                     chatActivityEnterView.doneEditingMessage();

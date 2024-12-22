@@ -18,6 +18,8 @@ public class UndoStore {
     private Map<UUID, Runnable> uuidToOperationMap = new HashMap<>();
     private List<UUID> operations = new ArrayList<>();
 
+    public int localUndo = 0;
+
     public boolean canUndo() {
         return !operations.isEmpty();
     }
@@ -33,6 +35,7 @@ public class UndoStore {
     public void registerUndo(UUID uuid, Runnable undoRunnable) {
         uuidToOperationMap.put(uuid, undoRunnable);
         operations.add(uuid);
+        localUndo +=1;
 
         notifyOfHistoryChanges();
     }
@@ -40,6 +43,7 @@ public class UndoStore {
     public void unregisterUndo(UUID uuid) {
         uuidToOperationMap.remove(uuid);
         operations.remove(uuid);
+        localUndo -=1;
 
         notifyOfHistoryChanges();
     }
@@ -54,6 +58,7 @@ public class UndoStore {
         Runnable undoRunnable = uuidToOperationMap.get(uuid);
         uuidToOperationMap.remove(uuid);
         operations.remove(lastIndex);
+        localUndo -=1;
 
         undoRunnable.run();
         notifyOfHistoryChanges();
@@ -65,11 +70,23 @@ public class UndoStore {
         }
     }
 
+    public void clearLocal() {
+        final int c = localUndo;
+        for (int i = 0; i < c; i++) {
+            undo();
+        }
+    }
+
     public void reset() {
         operations.clear();
         uuidToOperationMap.clear();
+        localUndo = 0;
 
         notifyOfHistoryChanges();
+    }
+
+    public void resetLocal() {
+        localUndo = 0;
     }
 
     private void notifyOfHistoryChanges() {

@@ -53,7 +53,7 @@ import org.telegram.ui.Components.LayoutHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class CollageLayoutView2 extends FrameLayout implements ItemOptions.ScrimView {
+public class CollageLayoutView3 extends FrameLayout implements ItemOptions.ScrimView {
 
     private final FrameLayout containerView;
     private final Theme.ResourcesProvider resourcesProvider;
@@ -78,7 +78,7 @@ public class CollageLayoutView2 extends FrameLayout implements ItemOptions.Scrim
 
     private final BlurringShader.BlurManager blurManager;
 
-    public CollageLayoutView2(Context context, BlurringShader.BlurManager blurManager, FrameLayout containerView, Theme.ResourcesProvider resourcesProvider) {
+    public CollageLayoutView3(Context context, BlurringShader.BlurManager blurManager, FrameLayout containerView, Theme.ResourcesProvider resourcesProvider) {
         super(context);
         this.blurManager = blurManager;
         this.containerView = containerView;
@@ -928,9 +928,9 @@ public class CollageLayoutView2 extends FrameLayout implements ItemOptions.Scrim
     public class Part {
 
         private int index;
-        private final AnimatedFloat highlightAnimated = new AnimatedFloat(CollageLayoutView2.this, 0, 1200, CubicBezierInterpolator.EASE_OUT);
+        private final AnimatedFloat highlightAnimated = new AnimatedFloat(CollageLayoutView3.this, 0, 1200, CubicBezierInterpolator.EASE_OUT);
 
-        public final ImageReceiver imageReceiver = new ImageReceiver(CollageLayoutView2.this);
+        public final ImageReceiver imageReceiver = new ImageReceiver(CollageLayoutView3.this);
         public VideoPlayerHolderBase videoPlayer;
         public TextureView textureView;
         public boolean textureViewReady;
@@ -1180,13 +1180,13 @@ public class CollageLayoutView2 extends FrameLayout implements ItemOptions.Scrim
         return maxPart;
     }
 
-    private TimelineView timelineView;
-    public void setTimelineView(TimelineView timelineView) {
+    private TimelineView2 timelineView;
+    public void setTimelineView(TimelineView2 timelineView) {
         this.timelineView = timelineView;
     }
 
-    private PreviewView previewView;
-    public void setPreviewView(PreviewView previewView) {
+    private PreviewView2 previewView;
+    public void setPreviewView(PreviewView2 previewView) {
         this.previewView = previewView;
     }
 

@@ -8,6 +8,8 @@
 
 package org.telegram.messenger.video;
 
+import static org.telegram.messenger.AndroidUtilities.dp;
+
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -59,6 +61,7 @@ import org.telegram.messenger.VideoEditedInfo;
 import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.AnimatedEmojiSpan;
 import org.telegram.ui.Components.AnimatedFileDrawable;
+import org.telegram.ui.Components.BitmapHolder;
 import org.telegram.ui.Components.BlurringShader;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.EditTextEffects;
@@ -67,7 +70,11 @@ import org.telegram.ui.Components.Paint.Views.EditTextOutline;
 import org.telegram.ui.Components.Paint.Views.LinkPreview;
 import org.telegram.ui.Components.Paint.Views.LocationMarker;
 import org.telegram.ui.Components.Paint.Views.PaintTextOptionsView;
+import org.telegram.ui.Components.Paint.Views.ReactionWidgetEntityView;
+import org.telegram.ui.Components.Point;
 import org.telegram.ui.Components.RLottieDrawable;
+import org.telegram.ui.Components.Reactions.ReactionsLayoutInBubble;
+import org.telegram.ui.Components.Size;
 import org.telegram.ui.Components.VideoPlayer;
 import org.telegram.ui.Stories.recorder.PreviewView;
 import org.telegram.ui.Stories.recorder.StoryEntry;
@@ -1272,6 +1279,10 @@ public class TextureRenderer {
                         initLocationEntity(entity);
                     } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_LINK) {
                         initLinkEntity(entity);
+                    } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_REACTION) {
+                        initReactionEntity(entity);
+                    } else if (entity.type == VideoEditedInfo.MediaEntity.TYPE_WEATHER) {
+                        initWeatherEntity(entity);
                     }
                 }
             } catch (Throwable e) {
@@ -1458,6 +1469,72 @@ public class TextureRenderer {
         }
     }
 
+    private void initReactionEntity(VideoEditedInfo.MediaEntity entity) {
+        float scale = entity.width * transformedWidth / entity.viewWidth;
+        int pad = 8;
+        entity.bitmap = BitmapHolder.getInstance().getBitmap("TYPE_REACTION");
+        entity.additionalWidth = (2 * pad) * scale / transformedWidth;
+        entity.additionalHeight = (2 * pad) * scale / transformedHeight;
+    }
+
+    private void initWeatherEntity(VideoEditedInfo.MediaEntity entity) {
+        final int variant = entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION ? LocationMarker.VARIANT_LOCATION : LocationMarker.VARIANT_WEATHER;
+        LocationMarker marker = new LocationMarker(ApplicationLoader.applicationContext, variant, entity.density, 0);
+        marker.setIsVideo(true);
+        marker.setMaxWidth(entity.viewWidth);
+        marker.setType(entity.subType, entity.color);
+        if (entity.weather != null && entity.entities.isEmpty()) {
+            marker.setCodeEmoji(UserConfig.selectedAccount, entity.weather.getEmoji());
+        }
+        if (entity.entities.size() == 1) {
+            marker.forceEmoji();
+        }
+        marker.setText(entity.text);
+        marker.measure(View.MeasureSpec.makeMeasureSpec(entity.viewWidth, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(entity.viewHeight, View.MeasureSpec.EXACTLY));
+        marker.layout(0, 0, entity.viewWidth, entity.viewHeight);
+        float scale = entity.width * transformedWidth / entity.viewWidth;
+        int w = (int) (entity.viewWidth * scale), h = (int) (entity.viewHeight * scale), pad = 8;
+        entity.bitmap = Bitmap.createBitmap(w + pad + pad, h + pad + pad, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(entity.bitmap);
+        canvas.translate(pad, pad);
+        canvas.scale(scale, scale);
+        marker.draw(canvas);
+        entity.additionalWidth = (2 * pad) * scale / transformedWidth;
+        entity.additionalHeight = (2 * pad) * scale / transformedHeight;
+        if (entity.entities.size() == 1) {
+            VideoEditedInfo.EmojiEntity e = entity.entities.get(0);
+            e.entity = new VideoEditedInfo.MediaEntity();
+            e.entity.text = e.documentAbsolutePath;
+            e.entity.subType = e.subType;
+
+            RectF bounds = new RectF();
+            marker.getEmojiBounds(bounds);
+
+            float tcx = entity.x + (bounds.centerX()) / entity.viewWidth * entity.width;
+            float tcy = entity.y + (bounds.centerY()) / entity.viewHeight * entity.height;
+
+            if (entity.rotation != 0) {
+                float mx = entity.x + entity.width / 2f;
+                float my = entity.y + entity.height / 2f;
+                float ratio = transformedWidth / (float) transformedHeight;
+                float x1 = tcx - mx;
+                float y1 = (tcy - my) / ratio;
+                tcx = (float) (x1 * Math.cos(-entity.rotation) - y1 * Math.sin(-entity.rotation)) + mx;
+                tcy = (float) (x1 * Math.sin(-entity.rotation) + y1 * Math.cos(-entity.rotation)) * ratio + my;
+            }
+
+            e.entity.width =  (float) bounds.width() / entity.viewWidth * entity.width;
+            e.entity.height = (float) bounds.height() / entity.viewHeight * entity.height;
+            e.entity.width *= LocationMarker.SCALE;
+            e.entity.height *= LocationMarker.SCALE;
+            e.entity.x = tcx - e.entity.width / 2f;
+            e.entity.y = tcy - e.entity.height / 2f;
+            e.entity.rotation = entity.rotation;
+
+            initStickerEntity(e.entity);
+        }
+    }
+
     private void initLinkEntity(VideoEditedInfo.MediaEntity entity) {
         LinkPreview marker = new LinkPreview(ApplicationLoader.applicationContext, entity.density);
         marker.setVideoTexture();
@@ -1500,6 +1577,9 @@ public class TextureRenderer {
             entity.metadata = new int[3];
             entity.ptr = RLottieDrawable.create(entity.text, null, entity.W, entity.H, entity.metadata, false, null, false, 0);
             entity.framesPerDraw = entity.metadata[1] / videoFps;
+            if (entity.ptr == 0) {
+                entity.bitmap = BitmapHolder.getInstance().getBitmap(entity.text);
+            }
         } else if ((entity.subType & 4) != 0) {
             entity.looped = false;
             entity.animatedFileDrawable = new AnimatedFileDrawable(new File(entity.text), true, 0, 0, null, null, null, 0, UserConfig.selectedAccount, true, 512, 512, null);

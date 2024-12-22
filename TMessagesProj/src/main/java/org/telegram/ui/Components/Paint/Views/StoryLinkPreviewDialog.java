@@ -391,7 +391,7 @@ public class StoryLinkPreviewDialog extends Dialog {
         this.whenDone = whenDone;
     }
 
-    public void setStoryPreviewView(PreviewView previewView) {
+    public void setStoryPreviewView(View previewView) {
         backgroundView.setImageDrawable(new Drawable() {
             @Override
             public void draw(@NonNull Canvas canvas) {

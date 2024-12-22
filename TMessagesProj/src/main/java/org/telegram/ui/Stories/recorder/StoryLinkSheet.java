@@ -64,7 +64,7 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
 
     private Utilities.Callback<LinkPreview.WebPagePreview> whenDone;
 
-    public StoryLinkSheet(Context context, Theme.ResourcesProvider resourcesProvider, PreviewView previewView, Utilities.Callback<LinkPreview.WebPagePreview> whenDone) {
+    public StoryLinkSheet(Context context, Theme.ResourcesProvider resourcesProvider, View previewView, Utilities.Callback<LinkPreview.WebPagePreview> whenDone) {
         super(context, null, true, false, false, true, ActionBarType.SLIDING, resourcesProvider);
         this.whenDone = whenDone;
 

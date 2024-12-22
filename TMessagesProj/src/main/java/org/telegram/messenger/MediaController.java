@@ -8,6 +8,8 @@
 
 package org.telegram.messenger;
 
+import static org.telegram.ui.Stories.recorder.StoryEntry.makeCacheFile;
+
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -25,8 +27,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
 import android.graphics.drawable.BitmapDrawable;
@@ -88,11 +92,14 @@ import org.telegram.ui.Components.EmbedBottomSheet;
 import org.telegram.ui.Components.PermissionRequest;
 import org.telegram.ui.Components.PhotoFilterView;
 import org.telegram.ui.Components.PipRoundVideoView;
+import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.Reactions.ReactionsLayoutInBubble;
 import org.telegram.ui.Components.VideoPlayer;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PhotoViewer;
 import org.telegram.ui.Stories.DarkThemeResourceProvider;
+import org.telegram.ui.Stories.recorder.CollageLayout;
+import org.telegram.ui.Stories.recorder.StoryEntry;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -475,6 +482,66 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
         public BitmapDrawable thumb;
 
+        public File round;
+        public String roundThumb;
+        public long roundDuration;
+        public long roundOffset;
+        public float roundLeft, roundRight = 1;
+        public float roundVolume = 1;
+        public float videoVolume = 1f;
+
+        public String audioPath;
+        public String audioAuthor, audioTitle;
+        public long audioDuration;
+        public long audioOffset;
+        public float audioLeft, audioRight = 1;
+        public float audioVolume = 1;
+
+        public boolean editedMedia;
+
+        public boolean wouldBeVideo() {
+            return wouldBeVideo(mediaEntities);
+        }
+
+        public boolean wouldBeVideo(ArrayList<VideoEditedInfo.MediaEntity> mediaEntities) {
+            if (isVideo) {
+                return true;
+            }
+            if (audioPath != null) {
+                return true;
+            }
+            if (round != null) {
+                return true;
+            }
+            if (mediaEntities != null && !mediaEntities.isEmpty()) {
+                for (int i = 0; i < mediaEntities.size(); ++i) {
+                    VideoEditedInfo.MediaEntity entity = mediaEntities.get(i);
+                    if (entity.type == VideoEditedInfo.MediaEntity.TYPE_STICKER) {
+                        if (isAnimated(entity.document, entity.text)) {
+                            return true;
+                        }
+                    } else if ((entity.type == VideoEditedInfo.MediaEntity.TYPE_TEXT/* || entity.type == VideoEditedInfo.MediaEntity.TYPE_LOCATION*/) && entity.entities != null && !entity.entities.isEmpty()) {
+                        for (int j = 0; j < entity.entities.size(); ++j) {
+                            VideoEditedInfo.EmojiEntity e = entity.entities.get(j);
+                            if (isAnimated(e.document, e.documentAbsolutePath)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+
+        public static boolean isAnimated(TLRPC.Document document, String path) {
+            return document != null && (
+                    "video/webm".equals(document.mime_type) || "video/mp4".equals(document.mime_type) ||
+                            MessageObject.isAnimatedStickerDocument(document, true) && RLottieDrawable.getFramesCount(path, null) > 1
+            );
+        }
+
+
         public PhotoEntry(int bucketId, int imageId, long dateTaken, String path, int orientationOrDuration, boolean isVideo, int width, int height, long size) {
             this.bucketId = bucketId;
             this.imageId = imageId;
@@ -535,6 +602,23 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             photoEntry.emojiMarkup = emojiMarkup;
             photoEntry.gradientTopColor = gradientTopColor;
             photoEntry.gradientBottomColor = gradientBottomColor;
+            photoEntry.round = round;
+            photoEntry.roundThumb = roundThumb;
+            photoEntry.roundDuration = roundDuration;
+            photoEntry.roundOffset = roundOffset;
+            photoEntry.roundLeft = roundLeft;
+            photoEntry.roundRight = roundRight;
+            photoEntry.roundVolume = roundVolume;
+            photoEntry.videoVolume = videoVolume;
+            photoEntry.audioPath = audioPath;
+            photoEntry.audioAuthor = audioAuthor;
+            photoEntry.audioDuration = audioDuration;
+            photoEntry.audioOffset = audioOffset;
+            photoEntry.audioLeft = audioLeft;
+            photoEntry.audioVolume = audioVolume;
+            photoEntry.editedMedia = editedMedia;
+            photoEntry.audioTitle = audioTitle;
+            photoEntry.audioRight = audioRight;
             photoEntry.copyFrom(this);
             return photoEntry;
         }
@@ -554,6 +638,20 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             }
             hasSpoiler = false;
             starsAmount = 0;
+            round = null;
+            roundThumb = null;
+            audioPath = null;
+            roundDuration = 0;
+            roundOffset = 0;
+            roundLeft = 1;
+            roundRight = 1;
+            roundVolume = 1;
+            videoVolume = 1f;
+            audioDuration = 0;
+            audioOffset = 0;
+            audioLeft = 1;
+            audioRight = 1;
+            audioVolume = 1;
             super.reset();
         }
 

@@ -24,11 +24,14 @@ import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_stories;
 import org.telegram.ui.Components.AnimatedFileDrawable;
+import org.telegram.ui.Components.BitmapHolder;
+import org.telegram.ui.Components.IsPhotoHolder;
 import org.telegram.ui.Components.Paint.PaintTypeface;
 import org.telegram.ui.Components.Paint.Views.LinkPreview;
 import org.telegram.ui.Components.PhotoFilterView;
 import org.telegram.ui.Components.Point;
 import org.telegram.ui.Components.Reactions.ReactionsLayoutInBubble;
+import org.telegram.ui.Components.SoundInfoHolder;
 import org.telegram.ui.Components.VideoPlayer;
 import org.telegram.ui.Stories.recorder.CollageLayout;
 import org.telegram.ui.Stories.recorder.StoryEntry;
@@ -271,6 +274,8 @@ public class VideoEditedInfo {
             } else if (type == TYPE_PHOTO) {
                 segmentedPath = data.readString(exception);
             } else if (type == TYPE_WEATHER) {
+                density = data.readFloat(exception);
+                mediaArea = TL_stories.MediaArea.TLdeserialize(data, data.readInt32(exception), exception);
                 int magic = data.readInt32(exception);
                 if (magic == 0x7EA7539) {
                     weather = Weather.State.TLdeserialize(data);
@@ -342,6 +347,8 @@ public class VideoEditedInfo {
             } else if (type == TYPE_PHOTO) {
                 data.writeString(segmentedPath);
             } else if (type == TYPE_WEATHER) {
+                data.writeFloat(density);
+                mediaArea.serializeToStream(data);
                 if (weather == null) {
                     data.writeInt32(0xdeadbeef);
                 } else {
@@ -689,6 +696,10 @@ public class VideoEditedInfo {
                         originalPath += "_" + args[a];
                     }
                 }
+                if (mixedSoundInfos.isEmpty()) { //version 1240
+                    mixedSoundInfos.addAll(SoundInfoHolder.getInstance().get(string));
+                }
+                isPhoto = IsPhotoHolder.getInstance().get(string);
             }
             return true;
         } catch (Exception e) {

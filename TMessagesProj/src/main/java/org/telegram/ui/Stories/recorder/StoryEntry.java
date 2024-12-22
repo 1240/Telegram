@@ -900,6 +900,10 @@ public class StoryEntry {
     }
 
     public static StoryEntry asCollage(CollageLayout layout, ArrayList<StoryEntry> entries) {
+        return asCollage(layout, entries, false);
+    }
+
+    public static StoryEntry asCollage(CollageLayout layout, ArrayList<StoryEntry> entries, boolean noLimits) {
         StoryEntry entry = new StoryEntry();
         entry.collage = layout;
         entry.collageContent = entries;
@@ -907,7 +911,7 @@ public class StoryEntry {
             if (e.isVideo) {
                 entry.isVideo = true;
                 e.videoLeft = 0;
-                e.videoRight = Math.min(1.0f, 59_000.0f / e.duration);
+                e.videoRight = noLimits? 1f : Math.min(1.0f, 59_000.0f / e.duration);
             }
         }
         if (entry.isVideo) {

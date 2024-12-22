@@ -107,12 +107,14 @@ public class GalleryListView extends FrameLayout implements NotificationCenter.N
 
     public boolean ignoreScroll;
     public final boolean onlyPhotos;
+    public final boolean skipDrafts;
 
-    public GalleryListView(int currentAccount, Context context, Theme.ResourcesProvider resourcesProvider, MediaController.AlbumEntry startAlbum, boolean onlyPhotos) {
+    public GalleryListView(int currentAccount, Context context, Theme.ResourcesProvider resourcesProvider, MediaController.AlbumEntry startAlbum, boolean onlyPhotos, boolean skipDrafts) {
         super(context);
         this.currentAccount = currentAccount;
         this.resourcesProvider = resourcesProvider;
         this.onlyPhotos = onlyPhotos;
+        this.skipDrafts = skipDrafts;
 
         backgroundPaint.setColor(0xff1f1f1f);
         backgroundPaint.setShadowLayer(dp(2.33f), 0, dp(-.4f), 0x08000000);
@@ -1400,8 +1402,14 @@ public class GalleryListView extends FrameLayout implements NotificationCenter.N
     }
 
     private void updateContainsDrafts() {
+        if (skipDrafts) {
+            containsDraftFolder = false;
+                    containsDrafts = false;
+        } else {
         containsDraftFolder = dropDownAlbums != null && !dropDownAlbums.isEmpty() && dropDownAlbums.get(0) == selectedAlbum && drafts.size() > 2;
         containsDrafts = !containsDraftFolder && (selectedAlbum == draftsAlbum || dropDownAlbums != null && !dropDownAlbums.isEmpty() && dropDownAlbums.get(0) == selectedAlbum);
+        }
+
     }
 
     public static final int SEARCH_TYPE_IMAGES = 0;
