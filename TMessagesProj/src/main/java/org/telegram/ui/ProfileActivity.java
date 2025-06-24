@@ -4965,7 +4965,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         AndroidUtilities.updateViewVisibilityAnimated(avatarContainer2, true, 1f, false);
         frameLayout.addView(avatarContainer2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
 //        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP/2);
-//        avatarContainer.setPivotY(AVATAR_BASE_SIZE_DP/2);
+        avatarContainer.setPivotY(0);
         avatarContainer2.addView(avatarContainer, LayoutHelper.createFrame(AVATAR_BASE_SIZE_DP, AVATAR_BASE_SIZE_DP, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
         avatarImage = new AvatarImageView(context) {
             @Override
@@ -4992,8 +4992,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         };
         avatarImage.getImageReceiver().setAllowDecodeSingleFrame(true);
         avatarImage.setRoundRadius(getSmallAvatarRoundRadius());
-        avatarImage.setPivotX(0);
-        avatarImage.setPivotY(0);
+//        avatarImage.setPivotX(0);
+//        avatarImage.setPivotY(0);
         avatarContainer.addView(avatarImage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         avatarImage.setOnClickListener(v -> {
             if (avatarBig != null) {
@@ -5727,6 +5727,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final int newTop = ActionBar.getCurrentActionBarHeight() + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
         final float value = currentExpandAnimatorValue = AndroidUtilities.lerp(expandAnimatorValues, currentExpanAnimatorFracture = animatedFracture);
         checkPhotoDescriptionAlpha();
+        avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
 //        avatarImage.setExpandProgress(value);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
