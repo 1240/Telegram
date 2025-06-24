@@ -473,11 +473,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private HashMap<Integer, Integer> positionToOffset = new HashMap<>();
 
 //    private float avatarX;
-    private static final float AVATAR_BASE_SIZE_DP          = 64f; // collapsed
-    private static final float AVATAR_INTERMEDIATE_EXTRA_DP = 32f; // +18 dp до extraHeight = 88
-    private static final float AVATAR_FULL_EXTRA_DP         = 64f; // ещё +42 dp при pull-down
-    private static final float AVATAR_EXTRA_RECT_DP = 40f;
-    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 248f;
+    private static final float AVATAR_BASE_SIZE_DP          = 64f; // was 42
+    private static final float AVATAR_INTERMEDIATE_EXTRA_DP = 32f; // was 18
+    private static final float AVATAR_FULL_EXTRA_DP         = 64f; // was 42
+    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 248f; // was 88
     private float avatarY;
     private float avatarScale;
     private float nameX;
@@ -743,7 +742,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 avatarImage.getLocationInWindow(coords);
                 PhotoViewer.PlaceProviderObject object = new PhotoViewer.PlaceProviderObject();
                 object.viewX = coords[0];
-                object.viewY = coords[1] - (Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2 ? 0 : AndroidUtilities.statusBarHeight);
+                object.viewY = coords[1] - (Build.VERSION.SDK_INT >= 21 ? 0 : AndroidUtilities.statusBarHeight);
                 object.parentView = avatarImage;
                 object.imageReceiver = avatarImage.getImageReceiver();
                 if (userId != 0) {
@@ -802,10 +801,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     public static class AvatarImageView extends BackupImageView {
-        private static final float EXTRA_DP = 40f;
-        private float extraProgress;              // 0‑1, общий progressToExpand
+        public static final float EXTRA_DP = 100f;
+//        private final Paint tailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+//        private BitmapShader tailShader;
+        private final Path tailPath = new Path();
         private final Paint tailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private BitmapShader tailShader;          // шейдер нижней строки
+        private float expandProgress;
 
         private final RectF rect = new RectF();
         private final Paint placeholderPaint;
@@ -834,6 +835,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             foregroundImageReceiver = new ImageReceiver(this);
             placeholderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             placeholderPaint.setColor(Color.BLACK);
+            tailPaint.setStyle(Paint.Style.FILL);
+            tailPaint.setColor(Color.RED);
         }
 
         public void setAnimateFromImageReceiver(ImageReceiver imageReceiver) {
@@ -907,6 +910,22 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         }
 
+//        private void buildTailShader(Bitmap src) {
+//            if (src == null) return;
+//            int w = src.getWidth();
+//            Bitmap strip = Bitmap.createBitmap(src, 0, src.getHeight() - 1, w, 1);
+//            Bitmap tiled = Bitmap.createScaledBitmap(
+//                    strip, w, AndroidUtilities.dp(EXTRA_DP), true);
+//            tailShader = new BitmapShader(tiled, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+//            tailPaint.setShader(tailShader);
+//        }
+
+        @Override
+        public void onNewImageSet() {
+            super.onNewImageSet();
+//            buildTailShader(getImageReceiver().getBitmap());
+        }
+
         @Override
         protected void onAttachedToWindow() {
             super.onAttachedToWindow();
@@ -921,6 +940,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         protected void onDraw(Canvas canvas) {
+            float tail = getExtraTailPx();
+            float avatarHeight = getMeasuredHeight() - tail;
             ImageReceiver imageReceiver = animatedEmojiDrawable != null ? animatedEmojiDrawable.getImageReceiver() : this.imageReceiver;
             canvas.save();
             canvas.scale(bounceScale, bounceScale, getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
@@ -937,7 +958,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     final float wasImageW = animateFromImageReceiver.getImageWidth();
                     final float wasImageH = animateFromImageReceiver.getImageHeight();
                     final float wasAlpha = animateFromImageReceiver.getAlpha();
-                    animateFromImageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, getMeasuredHeight() - inset * 2f);
+                    animateFromImageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, avatarHeight - inset * 2f);
                     animateFromImageReceiver.setAlpha(fromAlpha);
                     animateFromImageReceiver.draw(canvas);
                     animateFromImageReceiver.setImageCoords(wasImageX, wasImageY, wasImageW, wasImageH);
@@ -945,7 +966,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             if (imageReceiver != null && alpha > 0 && (foregroundAlpha < 1f || !drawForeground)) {
-                imageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, getMeasuredHeight() - inset * 2f);
+                imageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, avatarHeight - inset * 2f);
                 final float wasAlpha = imageReceiver.getAlpha();
                 imageReceiver.setAlpha(wasAlpha * alpha);
                 if (drawAvatar) {
@@ -955,17 +976,31 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             if (foregroundAlpha > 0f && drawForeground && alpha > 0) {
                 if (foregroundImageReceiver.getDrawable() != null) {
-                    foregroundImageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, getMeasuredHeight() - inset * 2f);
+                    foregroundImageReceiver.setImageCoords(inset, inset, getMeasuredWidth() - inset * 2f, avatarHeight - inset * 2f);
                     foregroundImageReceiver.setAlpha(alpha * foregroundAlpha);
                     foregroundImageReceiver.draw(canvas);
                 } else {
-                    rect.set(0f, 0f, getMeasuredWidth(), getMeasuredHeight());
+                    rect.set(0f, 0f, getMeasuredWidth(), avatarHeight);
                     placeholderPaint.setAlpha((int) (alpha * foregroundAlpha * 255f));
                     final int radius = foregroundImageReceiver.getRoundRadius()[0];
                     canvas.drawRoundRect(rect, radius, radius, placeholderPaint);
                 }
             }
+
             canvas.restore();
+
+            if (tail > 0) {
+                float left = 0f, top = getMeasuredHeight() - tail;
+                rect.set(left, top, getMeasuredWidth(), getMeasuredHeight());
+                int[] r = imageReceiver != null ? imageReceiver.getRoundRadius(true) : null;
+                float radius = r != null ? r[0] : 0f;
+
+                tailPaint.setColor(Color.RED);
+                tailPaint.setAlpha(255);
+                tailPaint.setStyle(Paint.Style.FILL);
+
+                canvas.drawRoundRect(rect, radius, radius, tailPaint);
+            }
         }
 
         @Override
@@ -1009,6 +1044,26 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             progressToExpand = animatedFracture;
             invalidate();
         }
+
+        public void setExpandProgress(float p) {
+            if (expandProgress == p) {
+                return;
+            }
+            expandProgress = p;
+            requestLayout();
+            invalidate();
+        }
+
+        public float getExtraTailPx() {
+            return 0;// AndroidUtilities.dp(EXTRA_DP) *expandProgress;
+        }
+
+//        @Override
+//        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+//            int w = MeasureSpec.getSize(widthMeasureSpec);
+//            int h = w + (int) getExtraTailPx();
+//            setMeasuredDimension(w, h);
+//        }
     }
 
     private class TopView extends FrameLayout {
@@ -1379,7 +1434,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     selectedBarPaint.setAlpha((int) (0xff * alpha));
                 }
                 int width = (getMeasuredWidth() - AndroidUtilities.dp(5 * 2) - AndroidUtilities.dp(2 * (count - 1))) / count;
-                int y = AndroidUtilities.dp(4) + (Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2 && !inBubbleMode ? AndroidUtilities.statusBarHeight : 0);
+                int y = AndroidUtilities.dp(4) + (Build.VERSION.SDK_INT >= 21 && !inBubbleMode ? AndroidUtilities.statusBarHeight : 0);
                 for (int a = 0; a < count; a++) {
                     int x = AndroidUtilities.dp(5 + a * 2) + width * a;
                     float progress;
@@ -2197,7 +2252,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         actionBar.setCastShadows(false);
         actionBar.setAddToContainer(false);
         actionBar.setClipContent(true);
-        actionBar.setOccupyStatusBar(Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2 && !AndroidUtilities.isTablet() && !inBubbleMode);
+        actionBar.setOccupyStatusBar(Build.VERSION.SDK_INT >= 21 && !AndroidUtilities.isTablet() && !inBubbleMode);
         ImageView backButton = actionBar.getBackButton();
         backButton.setOnLongClickListener(e -> {
             ActionBarPopupWindow menu = BackButtonMenu.show(this, backButton, getDialogId(), getTopicId(), resourcesProvider);
@@ -5334,7 +5389,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         sharedMediaLayout.setForwardRestrictedHint(fwdRestrictedHint);
 
         ViewGroup decorView;
-        if (Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2) {
+        if (Build.VERSION.SDK_INT >= 21) {
             decorView = (ViewGroup) getParentActivity().getWindow().getDecorView();
         } else {
             decorView = frameLayout;
@@ -5503,7 +5558,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         long dialogId = getDialogId();
         floatingButtonContainer = new FrameLayout(context);
         floatingButtonContainer.setVisibility(View.VISIBLE);
-        contentView.addView(floatingButtonContainer, LayoutHelper.createFrame((Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2 ? 56 : 60), (Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2 ? 56 : 60), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, LocaleController.isRTL ? 14 : 0, 0, LocaleController.isRTL ? 0 : 14, 14));
+        contentView.addView(floatingButtonContainer, LayoutHelper.createFrame((Build.VERSION.SDK_INT >= 21 ? 56 : 60), (Build.VERSION.SDK_INT >= 21 ? 56 : 60), (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.BOTTOM, LocaleController.isRTL ? 14 : 0, 0, LocaleController.isRTL ? 0 : 14, 14));
         floatingButtonContainer.setOnClickListener(v -> {
             if (showBoostsAlert) {
                 if (loadingBoostsStats) {
@@ -5557,7 +5612,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         floatingButton = new RLottieImageView(context);
         floatingButton.setScaleType(ImageView.ScaleType.CENTER);
         floatingButton.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chats_actionIcon), PorterDuff.Mode.MULTIPLY));
-        if (Build.VERSION.SDK_INT >= AVATAR_BASE_SIZE_DP/2) {
+        if (Build.VERSION.SDK_INT >= 21) {
             StateListAnimator animator = new StateListAnimator();
             animator.addState(new int[]{android.R.attr.state_pressed}, ObjectAnimator.ofFloat(floatingButtonContainer, View.TRANSLATION_Z, AndroidUtilities.dp(2), AndroidUtilities.dp(4)).setDuration(200));
             animator.addState(new int[]{}, ObjectAnimator.ofFloat(floatingButtonContainer, View.TRANSLATION_Z, AndroidUtilities.dp(4), AndroidUtilities.dp(2)).setDuration(200));
@@ -5672,6 +5727,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final int newTop = ActionBar.getCurrentActionBarHeight() + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
         final float value = currentExpandAnimatorValue = AndroidUtilities.lerp(expandAnimatorValues, currentExpanAnimatorFracture = animatedFracture);
         checkPhotoDescriptionAlpha();
+//        avatarImage.setExpandProgress(value);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
@@ -7499,7 +7555,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
 
             if (openAnimationInProgress && playProfileAnimation == 2) {
-//                float avX = 0;
                 float avY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2.0f - AVATAR_BASE_SIZE_DP/2 * AndroidUtilities.density + actionBar.getTranslationY();
 
                 nameTextView[0].setTranslationX(0);
@@ -7618,6 +7673,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                 nameY   = AndroidUtilities.lerp(leftNameY,   centerNameY,   diff);
                 onlineY = AndroidUtilities.lerp(leftOnlineY, centerOnlineY, diff);
+                float extraTail = avatarImage.getExtraTailPx();
+                nameY   -= extraTail;
+                onlineY -= extraTail;
 
                 if (showStatusButton != null) {
                     showStatusButton.setAlpha((int) (0xFF * diff));
@@ -7775,6 +7833,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         nameY   = AndroidUtilities.lerp(leftNameY,   centerNameY,   diff);
         onlineY = AndroidUtilities.lerp(leftOnlineY, centerOnlineY, diff);
+        float extraTail = avatarImage.getExtraTailPx();
+        nameY   -= extraTail;
+        onlineY -= extraTail;
     }
 
     public RecyclerListView getListView() {
