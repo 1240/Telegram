@@ -214,6 +214,7 @@ import org.telegram.ui.Components.AnimationProperties;
 import org.telegram.ui.Components.AudioPlayerAlert;
 import org.telegram.ui.Components.AutoDeletePopupWrapper;
 import org.telegram.ui.Components.AvatarDrawable;
+import org.telegram.ui.Components.AvatarMetaballOverlay;
 import org.telegram.ui.Components.BackButtonMenu;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.Bulletin;
@@ -359,6 +360,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private RLottieDrawable cellCameraDrawable;
 
     private HintView fwdRestrictedHint;
+    private AvatarMetaballOverlay metaballOverlay;
     private FrameLayout avatarContainer;
     private FrameLayout avatarContainer2;
     private DrawerProfileCell.AnimatedStatusView animatedStatusView;
@@ -4876,6 +4878,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         animatedStatusView.setPivotY(AndroidUtilities.dp(30));
 
         avatarContainer = new FrameLayout(context);
+        metaballOverlay = new AvatarMetaballOverlay(context);
         avatarContainer2 = new FrameLayout(context) {
 
             CanvasButton canvasButton;
@@ -5493,6 +5496,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             AndroidUtilities.runOnUIThread(this::scrollToSharedMedia);
         }
 
+        // Добавляем метабол оверлей поверх всего остального
+        frameLayout.addView(metaballOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         return fragmentView;
     }
 
@@ -5728,6 +5733,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.setScaleY(avatarScale);
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
         avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY), 0f, value));
+        updateMetaball();
         avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
         if (storyView != null) {
             storyView.setExpandProgress(value);
@@ -7579,6 +7585,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, avatarAnimationProgress));
 //                avatarContainer.setTranslationX(AndroidUtilities.lerp(avX, 0, avatarAnimationProgress));
                 avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avY), 0f, avatarAnimationProgress));
+                updateMetaball();
                 float extra = (avatarContainer.getMeasuredWidth() - AndroidUtilities.dp(42)) * avatarScale;
                 timeItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(16) + extra);
                 timeItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(15) + extra);
@@ -7652,6 +7659,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     avatarYFast -= (AVATAR_BASE_SIZE_DP / 2f * AndroidUtilities.density
                             + (avatarImage != null ? avatarImage.getExtraTailPx() : 0f)) * (1.0f - diffFast);
                     avatarContainer.setTranslationY((float) Math.ceil(avatarYFast));
+                    updateMetaball();
                     float extra = AndroidUtilities.dp(42) * avatarScale - AndroidUtilities.dp(42);
                     timeItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(16) + extra);
                     timeItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(15) + extra);
@@ -14772,6 +14780,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         if (collectibleHintVisible == null || collectibleHintVisible != visible) {
             collectibleHint.animate().alpha((collectibleHintVisible = visible) ? 1.0f : 0.0f).setInterpolator(CubicBezierInterpolator.EASE_OUT).setDuration(200).start();
         }
+    }
+
+    private void updateMetaball() {
+        float METABALL_TRIGGER = dp(84f);
+        if (metaballOverlay == null || avatarContainer == null) return;
+        float cx = avatarContainer.getX() + avatarContainer.getWidth()/2f;
+        float cy = avatarContainer.getY() + avatarContainer.getHeight()/2f;
+        float r  = (avatarContainer.getWidth()/2f)*avatarContainer.getScaleX();
+        float avatarTop = avatarContainer.getY();
+        float p = Utilities.clamp(1f - (avatarTop + r) / METABALL_TRIGGER, 1f, 0f);
+        metaballOverlay.update(cx, cy, r, p);
     }
 
 }
