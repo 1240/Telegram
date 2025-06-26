@@ -15,6 +15,21 @@ public final class StarGiftPatterns2 {
 
     private static final float PATTERN_SCALE = 1f;
     private static final float VERTICAL_RATIO = 0.70f;
+
+    /**
+     * Per-icon group index (0,1,2) — configure order of collapse
+     */
+    private static final int[] ICON_GROUP = {
+            0, 1, 0, 0, 1, 0,
+            1, 0, 0, 1, 1, 2,
+            2, 2, 1, 2, 2, 2,
+    };
+
+    /**
+     * Group-specific timing: when collapse starts and how long it lasts
+     */
+    private static final float[] GROUP_DELAY = {0.50f, 0.53f, 0.55f}; // start offset
+    private static final float[] GROUP_DURATION = {0.40f, 0.45f, 0.50f}; // fade‑in window
     private static final float[][] ORBIT_18 = buildOrbit();
 
     private static float[][] buildOrbit() {
@@ -72,19 +87,25 @@ public final class StarGiftPatterns2 {
 
         progress = MathUtils.clamp(progress, 0f, 1f);
 
-        for (float[] p : ORBIT_18) {
+        for (int i = 0; i < ORBIT_18.length; i++) {
+            float[] p = ORBIT_18[i];
             final float tx = p[0], ty = p[1];
             final float sizeDp = p[2];
             final float baseA = p[3];
-            float r0 = (float) Math.hypot(tx, ty);
 
-            float delay = (MAX_R - r0) / (MAX_R - MIN_R) * 0.35f;
-            float lp = (progress - delay) / (1f - delay);
+            // group‑based timing
+            int g = ICON_GROUP[i];
+            float baseDelay = GROUP_DELAY[g];
+            float duration = GROUP_DURATION[g];
+
+            float lp = (progress - baseDelay) / duration;      // 0…1 inside its window
             lp = MathUtils.clamp(lp, 0f, 1f);
-            lp = 1f - (float) Math.pow(1f - lp, 3);
+            lp = 1f - (float) Math.pow(1f - lp, 3);            // ease‑out‑cubic
+
             float dx = dpf2(tx * PATTERN_SCALE) * lp;
             float dy = dpf2(ty * PATTERN_SCALE) * lp;
             float sz = dp(sizeDp * (0.5f + 0.5f * lp));
+
             int l = Math.round(cx + dx - sz / 2f);
             int t = Math.round(cy + dy - sz / 2f);
             icon.setBounds(l, t, l + Math.round(sz), t + Math.round(sz));
