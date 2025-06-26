@@ -4983,7 +4983,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         fallbackImage.setRoundRadius(AndroidUtilities.dp(11));
         AndroidUtilities.updateViewVisibilityAnimated(avatarContainer2, true, 1f, false);
         frameLayout.addView(avatarContainer2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
-//        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP/2);
+        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP/2);
         avatarContainer.setPivotY(0);
         avatarContainer2.addView(metaball);
         avatarContainer2.addView(avatarContainer, LayoutHelper.createFrame(AVATAR_BASE_SIZE_DP, AVATAR_BASE_SIZE_DP, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
@@ -7565,6 +7565,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         expandAnimator.start();
                     }
 
+                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                     avatarContainer.setScaleX(avatarScale);
                     avatarContainer.setScaleY(avatarScale);
 
@@ -7618,6 +7619,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 starBgItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(24) + extra);
                 starFgItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(28) + extra);
                 starFgItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(24) + extra);
+
+                avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                 avatarContainer.setScaleX(avatarScale);
                 avatarContainer.setScaleY(avatarScale);
 
@@ -7667,21 +7670,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         avatarContainer.requestLayout();
                     }
                     float extraAvatarScale = avatarScale * diff;
+                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                     avatarContainer.setScaleX(extraAvatarScale);
                     avatarContainer.setScaleY(extraAvatarScale);
 //                    avatarContainer.setTranslationX(avatarX);
-                    // Compute accelerated upward position, then add an extra lift so the avatar exits the screen
                     float diffFast = (float) Math.pow(diff, 2f); // Square curve → faster rise
                     float avatarYFast = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                             + ActionBar.getCurrentActionBarHeight() / 2.0f * (1.0f + diffFast)
                             - AVATAR_BASE_SIZE_DP / 2f * AndroidUtilities.density
                             + 27f * AndroidUtilities.density * diffFast
                             + actionBar.getTranslationY();
-                    // Extra upward shift: when diffFast→0 (full collapse) avatarYFast is moved
-                    // by one full toolbar height (status bar + action bar) so it leaves the screen.
                     avatarYFast -= ((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                             + ActionBar.getCurrentActionBarHeight()) * (1.0f - diffFast);
-                    // Further lift: hide avatar tail entirely when fully collapsed
                     avatarYFast -= (AVATAR_BASE_SIZE_DP / 2f * AndroidUtilities.density
                             + (avatarImage != null ? avatarImage.getExtraTailPx() : 0f)) * (1.0f - diffFast);
                     avatarContainer.setTranslationY((float) Math.ceil(avatarYFast - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)));
@@ -7704,7 +7704,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 float onlineWidth = (onlineTextView[1].getPaint()
                         .measureText(onlineTextView[1].getText().toString())
                         + onlineTextView[1].getRightDrawableWidth()) * onlineScale;
-                float backOffset = AndroidUtilities.dp(48 + 8);            // back icon (48dp) + 8dp gap
+                float backOffset = AndroidUtilities.dp(48 + 8);
                 float leftNameX = backOffset - nameTextView[1].getLeft();
                 float leftOnlineX = leftNameX;
 
