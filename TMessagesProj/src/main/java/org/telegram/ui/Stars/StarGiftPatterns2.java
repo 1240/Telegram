@@ -16,20 +16,14 @@ public final class StarGiftPatterns2 {
     private static final float PATTERN_SCALE = 1f;
     private static final float VERTICAL_RATIO = 0.70f;
 
-    /**
-     * Per-icon group index (0,1,2) — configure order of collapse
-     */
     private static final int[] ICON_GROUP = {
             0, 1, 0, 0, 1, 0,
             1, 0, 0, 1, 1, 2,
             2, 2, 1, 2, 2, 2,
     };
 
-    /**
-     * Group-specific timing: when collapse starts and how long it lasts
-     */
-    private static final float[] GROUP_DELAY = {0.50f, 0.53f, 0.55f}; // start offset
-    private static final float[] GROUP_DURATION = {0.40f, 0.45f, 0.50f}; // fade‑in window
+    private static final float[] GROUP_DELAY = {0.50f, 0.53f, 0.55f};
+    private static final float[] GROUP_DURATION = {0.40f, 0.45f, 0.50f};
     private static final float[][] ORBIT_18 = buildOrbit();
 
     private static float[][] buildOrbit() {
@@ -64,26 +58,11 @@ public final class StarGiftPatterns2 {
         return pts;
     }
 
-    private static final float MIN_R, MAX_R;
-
-    /* ─── Anchor – fixed once per pattern instance ─── */
     private static float ANCHOR_CX = Float.NaN;
     private static float ANCHOR_CY = Float.NaN;
-    /** Call when you need to recalc anchor (e.g. on profile reopen) */
     public static void resetAnchor() {
         ANCHOR_CX = Float.NaN;
         ANCHOR_CY = Float.NaN;
-    }
-
-    static {
-        float min = Float.MAX_VALUE, max = 0;
-        for (float[] p : ORBIT_18) {
-            float r = (float) Math.hypot(p[0], p[1]);
-            min = Math.min(min, r);
-            max = Math.max(max, r);
-        }
-        MIN_R = min;
-        MAX_R = max;
     }
 
     public static void drawOrbitIcons(
@@ -99,9 +78,8 @@ public final class StarGiftPatterns2 {
             resetAnchor();
         }
 
-        // Freeze initial anchor (first call) so starting positions stay constant
         if (Float.isNaN(ANCHOR_CX) || Float.isNaN(ANCHOR_CY)) {
-            ANCHOR_CX = cx;
+            ANCHOR_CX = canvas.getWidth() / 2f;
             ANCHOR_CY = cy;
         }
 
@@ -111,23 +89,20 @@ public final class StarGiftPatterns2 {
             final float sizeDp = p[2];
             final float baseA = p[3];
 
-            // group‑based timing
             int g = ICON_GROUP[i];
             float baseDelay = GROUP_DELAY[g];
             float duration = GROUP_DURATION[g];
 
-            float lp = (progress - baseDelay) / duration;      // 0…1 inside its window
+            float lp = (progress - baseDelay) / duration;
             lp = MathUtils.clamp(lp, 0f, 1f);
-            lp = 1f - (float) Math.pow(1f - lp, 3);            // ease‑out‑cubic
+            lp = 1f - (float) Math.pow(1f - lp, 3);
 
             float offsetX = dpf2(tx * PATTERN_SCALE);
             float offsetY = dpf2(ty * PATTERN_SCALE);
 
-            /* start position is fixed relative to the anchor */
             float startX = ANCHOR_CX + offsetX;
             float startY = ANCHOR_CY + offsetY;
 
-            /* interpolate from current avatar center → fixed start */
             float x = cx + (startX - cx) * lp;
             float y = cy + (startY - cy) * lp;
 

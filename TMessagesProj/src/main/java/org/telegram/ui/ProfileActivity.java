@@ -476,9 +476,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     //    private float avatarX;
     private static final float AVATAR_BASE_SIZE_DP = 64f; // was 42
+    private static final float AVATAR_BASE_Y_DIFF = 36f;
     private static final float AVATAR_INTERMEDIATE_EXTRA_DP = 32f; // was 18
     private static final float AVATAR_FULL_EXTRA_DP = 64f; // was 42
-    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 248f; // was 88
+    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 190f; // was 88
     private float avatarY;
     private float avatarScale;
     private float nameX;
@@ -5754,7 +5755,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
-        avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY), 0f, value));
+        avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, value));
         updateMetaball();
         avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
         if (storyView != null) {
@@ -7608,7 +7609,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                 avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, avatarAnimationProgress));
 //                avatarContainer.setTranslationX(AndroidUtilities.lerp(avX, 0, avatarAnimationProgress));
-                avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avY), 0f, avatarAnimationProgress));
+                avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, avatarAnimationProgress));
                 updateMetaball();
                 float extra = (avatarContainer.getMeasuredWidth() - AndroidUtilities.dp(42)) * avatarScale;
                 timeItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(16) + extra);
@@ -7683,7 +7684,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     // Further lift: hide avatar tail entirely when fully collapsed
                     avatarYFast -= (AVATAR_BASE_SIZE_DP / 2f * AndroidUtilities.density
                             + (avatarImage != null ? avatarImage.getExtraTailPx() : 0f)) * (1.0f - diffFast);
-                    avatarContainer.setTranslationY((float) Math.ceil(avatarYFast));
+                    avatarContainer.setTranslationY((float) Math.ceil(avatarYFast - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)));
                     updateMetaball();
                     float extra = AndroidUtilities.dp(42) * avatarScale - AndroidUtilities.dp(42);
                     timeItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(16) + extra);
