@@ -29,7 +29,7 @@ public final class StarGiftPatterns2 {
     private static float[][] buildOrbit() {
         final float R_OUT = 128f, R_IN = 92f;
         final float SIZE_OUT = 16f, SIZE_IN = 20f;
-        final float ALPHA_OUT = .20f, ALPHA_IN = .50f;
+        final float ALPHA_OUT = .20f, ALPHA_IN = .35f;
 
         double[] degOuter = {-180, -144, -108, -72, -36, 0, 36, 72, 108, 144};
         double[] degInner = {-180, -135, -90, -45, 0, 45, 90, 135};

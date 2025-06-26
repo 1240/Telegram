@@ -7722,7 +7722,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 float leftNameY = actionBarCenterY - (nameTextView[1].getMeasuredHeight() * nameScale) / 2f;
                 float leftOnlineY = actionBarCenterY + AndroidUtilities.dp(4f);
 
-                float centerNameY = avatarBottomY + AndroidUtilities.dp(4);
+                // Derive Y under avatar using the same math the avatar uses
+                int tailPx = avatarImage != null ? (int) avatarImage.getExtraTailPx() : 0;
+                float avatarBase = AVATAR_BASE_SIZE_DP * AndroidUtilities.density;
+                float avatarTop =
+                        (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                                + ActionBar.getCurrentActionBarHeight() / 2f * (1.0f + 1)
+                                - avatarBase / 2f
+                                + 27f * AndroidUtilities.density * 1
+                                + actionBar.getTranslationY()
+                                - ((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                                + ActionBar.getCurrentActionBarHeight()) * (1.0f - 1)
+                                - (avatarBase / 2f + tailPx) * (1.0f - 1)
+                                - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF);
+                float centerNameY = avatarTop + avatarBase * avatarScale + tailPx + AndroidUtilities.dp(4f);
                 float centerOnlineY = centerNameY + nameTextView[1].getMeasuredHeight() * nameScale + AndroidUtilities.dp(2);
 
                 nameY = AndroidUtilities.lerp(leftNameY, centerNameY, diff);
@@ -7882,8 +7895,27 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float leftNameY = actionBarCenterY - (nameTextView[1].getMeasuredHeight() * nameScale) / 2f;
         float leftOnlineY = actionBarCenterY + AndroidUtilities.dp(4f);
 
-        float centerNameY = avatarBottomY + AndroidUtilities.dp(4);
-        float centerOnlineY = centerNameY + nameTextView[1].getMeasuredHeight() * nameScale + AndroidUtilities.dp(2);
+        float centerNameY;
+        float centerOnlineY;
+        if (diff <= 1f) {
+            int tailPx = avatarImage != null ? (int) avatarImage.getExtraTailPx() : 0;
+            float avatarBase = AVATAR_BASE_SIZE_DP * AndroidUtilities.density;
+            float avatarTop =
+                    (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                            + ActionBar.getCurrentActionBarHeight() / 2f * (1.0f + 1)
+                            - avatarBase / 2f
+                            + 27f * AndroidUtilities.density * 1
+                            + actionBar.getTranslationY()
+                            - ((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                            + ActionBar.getCurrentActionBarHeight()) * (1.0f - 1)
+                            - (avatarBase / 2f + tailPx) * (1.0f - 1)
+                            - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF);
+            centerNameY = avatarTop + avatarBase * avatarScale + tailPx + AndroidUtilities.dp(4f);
+            centerOnlineY = centerNameY + nameTextView[1].getMeasuredHeight() * nameScale + AndroidUtilities.dp(2);
+        } else {
+            centerNameY = avatarBottomY + AndroidUtilities.dp(4);
+            centerOnlineY = centerNameY + nameTextView[1].getMeasuredHeight() * nameScale + AndroidUtilities.dp(2);
+        }
 
         nameY = AndroidUtilities.lerp(leftNameY, centerNameY, diff);
         onlineY = AndroidUtilities.lerp(leftOnlineY, centerOnlineY, diff);
