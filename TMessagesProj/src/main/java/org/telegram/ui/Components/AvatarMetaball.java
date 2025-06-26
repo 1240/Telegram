@@ -46,9 +46,9 @@ public class AvatarMetaball extends View {
     protected void onDraw(Canvas canvas) {
         if (progress <= 0f) return;
 
-        float R_M = 5;
-        float EARLY_PULL = .3f;
-        float STICKINESS = progress < .7 ?.5f : 0.5f - (progress - 0.7f);
+        float EARLY_PULL = .1f;
+        float R_M = 4f;
+        float STICKINESS = progress < .6 ? .5f : 0.5f - (progress - 0.6f);
 
         final float r = avatarR;
         final float tr = r * R_M;

@@ -271,7 +271,7 @@ import org.telegram.ui.Gifts.GiftSheet;
 import org.telegram.ui.Stars.BotStarsActivity;
 import org.telegram.ui.Stars.BotStarsController;
 import org.telegram.ui.Stars.ProfileGiftsView;
-import org.telegram.ui.Stars.StarGiftPatterns;
+import org.telegram.ui.Stars.StarGiftPatterns2;
 import org.telegram.ui.Stars.StarGiftSheet;
 import org.telegram.ui.Stars.StarsController;
 import org.telegram.ui.Stars.StarsIntroActivity;
@@ -1218,7 +1218,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (loadedScale > 0) {
                         canvas.save();
                         canvas.clipRect(0, 0, getMeasuredWidth(), y1);
-                        StarGiftPatterns.drawProfilePattern(canvas, emoji, getMeasuredWidth(), ((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + dp(144)) - (1f - extraHeight / dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP)) * dp(50), Math.min(1f, extraHeight / dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP)), full);
+                        final float diff = Math.min(1f, extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP));
+                        float diffFast = (float) Math.pow(diff, 4f);
+                        float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
+                        int[] coords = new int[2];
+                        avatarContainer.getLocationInWindow(coords);
+                        float cx = coords[0] + r;
+                        float cy = coords[1] + r;
+
+                        StarGiftPatterns2.drawOrbitIcons(canvas, emoji, cx, cy, diffFast);
                         canvas.restore();
                     }
                 }
