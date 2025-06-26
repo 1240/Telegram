@@ -66,6 +66,15 @@ public final class StarGiftPatterns2 {
 
     private static final float MIN_R, MAX_R;
 
+    /* ─── Anchor – fixed once per pattern instance ─── */
+    private static float ANCHOR_CX = Float.NaN;
+    private static float ANCHOR_CY = Float.NaN;
+    /** Call when you need to recalc anchor (e.g. on profile reopen) */
+    public static void resetAnchor() {
+        ANCHOR_CX = Float.NaN;
+        ANCHOR_CY = Float.NaN;
+    }
+
     static {
         float min = Float.MAX_VALUE, max = 0;
         for (float[] p : ORBIT_18) {
@@ -86,6 +95,15 @@ public final class StarGiftPatterns2 {
     ) {
 
         progress = MathUtils.clamp(progress, 0f, 1f);
+        if (progress >= 1) {
+            resetAnchor();
+        }
+
+        // Freeze initial anchor (first call) so starting positions stay constant
+        if (Float.isNaN(ANCHOR_CX) || Float.isNaN(ANCHOR_CY)) {
+            ANCHOR_CX = cx;
+            ANCHOR_CY = cy;
+        }
 
         for (int i = 0; i < ORBIT_18.length; i++) {
             float[] p = ORBIT_18[i];
@@ -102,12 +120,21 @@ public final class StarGiftPatterns2 {
             lp = MathUtils.clamp(lp, 0f, 1f);
             lp = 1f - (float) Math.pow(1f - lp, 3);            // ease‑out‑cubic
 
-            float dx = dpf2(tx * PATTERN_SCALE) * lp;
-            float dy = dpf2(ty * PATTERN_SCALE) * lp;
+            float offsetX = dpf2(tx * PATTERN_SCALE);
+            float offsetY = dpf2(ty * PATTERN_SCALE);
+
+            /* start position is fixed relative to the anchor */
+            float startX = ANCHOR_CX + offsetX;
+            float startY = ANCHOR_CY + offsetY;
+
+            /* interpolate from current avatar center → fixed start */
+            float x = cx + (startX - cx) * lp;
+            float y = cy + (startY - cy) * lp;
+
             float sz = dp(sizeDp * (0.5f + 0.5f * lp));
 
-            int l = Math.round(cx + dx - sz / 2f);
-            int t = Math.round(cy + dy - sz / 2f);
+            int l = Math.round(x - sz / 2f);
+            int t = Math.round(y - sz / 2f);
             icon.setBounds(l, t, l + Math.round(sz), t + Math.round(sz));
             icon.setAlpha(Math.round(255 * (baseA * (0.5f + 0.5f * lp))));
 
