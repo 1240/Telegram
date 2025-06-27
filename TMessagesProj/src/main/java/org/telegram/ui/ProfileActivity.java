@@ -14868,21 +14868,21 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateMetaball() {
-        float METABALL_TRIGGER = dp(84f);
         if (metaballOverlay == null || metaball == null || avatarContainer == null) return;
         float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
         int[] coords = new int[2];
         avatarContainer.getLocationInWindow(coords);
-        float cx = coords[0] + r;
         float cy = avatarContainer.getY() + r;
         float avatarTopScreen = coords[1]; // top of avatar in window coords
+
+        final float connectThreshold = AvatarMetaball.CONNECT_THRESHOLD;
 
         float p;
         if (metaball.hasCameraTarget()) {
             float gap = avatarTopScreen - metaball.getInnerBottomYInWindow();
-            p = Utilities.clamp(1f - gap / METABALL_TRIGGER, 1f, 0f);
+            p = Utilities.clamp(1f - gap / connectThreshold, 1f, 0f);
         } else {
-            p = Utilities.clamp(1f - (avatarTopScreen + r) / METABALL_TRIGGER, 1f, 0f);
+            p = Utilities.clamp(1f - (avatarTopScreen + r) / connectThreshold, 1f, 0f);
         }
         metaball.update(cy, r, p);
 //        metaballOverlay.update(cx, cy, r, p);

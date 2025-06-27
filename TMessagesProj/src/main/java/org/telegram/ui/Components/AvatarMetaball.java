@@ -35,7 +35,7 @@ public class AvatarMetaball extends View {
             h3 = new Point(), h4 = new Point();
 
     private static final float HALF_PI = (float) (Math.PI / 2);
-    private static final float CONNECT_THRESHOLD = AndroidUtilities.dp(13); // 13 dp
+    public static final float CONNECT_THRESHOLD = AndroidUtilities.dp(13); // 13 dp
     private static final float HANDLE_SIZE = 2.4f;
 
     public AvatarMetaball(Context ctx) {
