@@ -14872,10 +14872,19 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.getLocationInWindow(coords);
         float cx = coords[0] + r;
         float cy = avatarContainer.getY() + r;
-        float avatarTop = avatarContainer.getY();
-        float p = Utilities.clamp(1f - (avatarTop + r) / METABALL_TRIGGER, 1f, 0f);
+        float avatarTopScreen = coords[1]; // top of avatar in window coords
+
+        float p;
+        if (metaball.hasCameraTarget()) {
+            // Distance from avatar top to bottom edge of camera (positive while apart)
+            float gap = avatarTopScreen - metaball.getInnerBottomYInWindow();
+            p = Utilities.clamp(1f - gap / METABALL_TRIGGER, 1f, 0f);
+        } else {
+            // Legacy behaviour: distance from avatar centre to top edge of screen (0)
+            p = Utilities.clamp(1f - (avatarTopScreen + r) / METABALL_TRIGGER, 1f, 0f);
+        }
         metaball.update(cx, cy, r, p);
-        metaballOverlay.update(cx, cy, r, p);
+//        metaballOverlay.update(cx, cy, r, p);
     }
 
 }
