@@ -21,14 +21,12 @@ import org.telegram.messenger.Utilities;
 public class AvatarMetaball extends View {
 
 
-    // Punch‑hole (center camera) support
     private boolean useCameraTarget = false;
-    private float cameraCx, cameraCy, cameraR;
+    private float cameraCy, cameraR;
 
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path metaballPath = new Path();
-
-    private float avatarCx, avatarCy, avatarR;
+    private float avatarCy, avatarR;
     private float progress;
 
     private final Point p1 = new Point(), p2 = new Point(),
@@ -37,7 +35,6 @@ public class AvatarMetaball extends View {
             h3 = new Point(), h4 = new Point();
 
     private static final float HALF_PI = (float) (Math.PI / 2);
-    // Distance (in px) at which the connecting blob starts to appear
     private static final float CONNECT_THRESHOLD = AndroidUtilities.dp(13); // 13 dp
     private static final float HANDLE_SIZE = 2.4f;
 
@@ -46,7 +43,6 @@ public class AvatarMetaball extends View {
         setWillNotDraw(false);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFF000000);
-        // Detect centred punch‑hole / notch camera and use it as absorption target
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
                 @Override
@@ -61,7 +57,6 @@ public class AvatarMetaball extends View {
                                 // accept only top‑edge cut‑outs centred horizontally
                                 if (r.top == 0 &&
                                         Math.abs((r.left + r.right) / 2f - screenW / 2f) < r.width() / 2f) {
-                                    cameraCx = (r.left + r.right) / 2f;
                                     cameraR  = Math.min(r.width(), r.height()) / 2f; // exact physical radius (use width if taller than wide)
                                     cameraCy = r.bottom - cameraR; // center = bottom minus radius
                                     useCameraTarget = true;
@@ -76,49 +71,15 @@ public class AvatarMetaball extends View {
         }
     }
 
-    public void setCameraTarget(float cx, float cy, float radius) {
-        cameraCx = cx;
-        cameraCy = cy;
-        cameraR  = radius;
-        useCameraTarget = true;
-        invalidate();
-    }
-
-    /**
-     * @return true if a centered punch‑hole camera target is being used.
-     */
     public boolean hasCameraTarget() {
         return useCameraTarget;
     }
 
-    /**
-     * Returns the Y‑coordinate (in this view's coordinate system) of the bottom edge
-     * of the inner metaball.  Call this right after `update()` to align external
-     * animations (e.g. avatar starting Y) so they attach to the metaball's bottom.
-     *
-     * If a centered camera is detected the anchor equals (cameraCy + cameraR);
-     * otherwise it returns 0, which corresponds to the top edge of the screen.
-     */
-    public float getInnerBottomY() {
-        int[] loc = new int[2];
-        getLocationOnScreen(loc);
-        if (useCameraTarget) {
-            return (cameraCy + cameraR) - loc[1];
-        } else {
-            return 0f;
-        }
-    }
-
-    /**
-     * Returns the Y‑coordinate of the bottom edge of the inner metaball
-     * in **window** coordinates (independent of this view’s position).
-     */
     public float getInnerBottomYInWindow() {
         return useCameraTarget ? (cameraCy + cameraR) : 0f;
     }
 
-    public void update(float cx, float cy, float r, float prog) {
-        avatarCx = cx;
+    public void update(float cy, float r, float prog) {
         avatarCy = cy;
         avatarR = r;
         progress = Utilities.clamp(prog, 1f, 0f);
@@ -129,32 +90,29 @@ public class AvatarMetaball extends View {
     protected void onDraw(Canvas canvas) {
         if (progress <= 0f) return;
 
+        float centerX = getWidth() / 2f;
         float EARLY_PULL = .1f;
         float R_M = 4f;
         float STICKINESS = progress < .6 ? .5f : 0.5f - (progress - 0.6f);
 
         final float r = avatarR;
-        float tr, x2, y2;
+        float tr, y2;
         if (useCameraTarget) {
             int[] loc = new int[2];
-            getLocationOnScreen(loc);          // view's top‑left in window coords
-            x2 = cameraCx - loc[0];
+            getLocationOnScreen(loc);
             y2 = cameraCy - loc[1];
             tr = cameraR;
         } else {
             tr = r * R_M;
-            x2 = avatarCx;
             y2 = -tr;
         }
 
-        final float x1 = avatarCx;
         final float y1 = avatarCy;
-        canvas.drawCircle(x2, y2, tr, paint);
+        canvas.drawCircle(centerX, y2, tr, paint);
         final float d = Math.abs(y2 - y1);
-        // Draw separate circles until surfaces are within CONNECT_THRESHOLD px
-        float gap = d - (r + tr); // distance between outer surfaces
+        float gap = d - (r + tr);
         if (gap > CONNECT_THRESHOLD) {
-            canvas.drawCircle(x1, y1, r, paint);
+            canvas.drawCircle(centerX, y1, r, paint);
             return;
         }
 
@@ -173,10 +131,10 @@ public class AvatarMetaball extends View {
         double angle3 = angleBetweenCenters + Math.PI - u2 - (Math.PI - u2 - maxSpread) * v;
         double angle4 = angleBetweenCenters - Math.PI + u2 + (Math.PI - u2 - maxSpread) * v;
 
-        getVector(x1, y1, angle1, r, p1);
-        getVector(x1, y1, angle2, r, p2);
-        getVector(x2, y2, angle3, tr, p3);
-        getVector(x2, y2, angle4, tr, p4);
+        getVector(centerX, y1, angle1, r, p1);
+        getVector(centerX, y1, angle2, r, p2);
+        getVector(centerX, y2, angle3, tr, p3);
+        getVector(centerX, y2, angle4, tr, p4);
 
         final float totalR = r + tr;
         float d2Base = Math.min(v * HANDLE_SIZE, dist(p1, p3) / totalR);

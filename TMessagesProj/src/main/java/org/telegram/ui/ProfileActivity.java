@@ -359,8 +359,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private RLottieDrawable cellCameraDrawable;
 
     private HintView fwdRestrictedHint;
-    private AvatarMetaball metaball;
-    private AvatarMetaballOverlay metaballOverlay;
     private FrameLayout avatarContainer;
     private FrameLayout avatarContainer2;
     private DrawerProfileCell.AnimatedStatusView animatedStatusView;
@@ -475,11 +473,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private HashMap<Integer, Integer> positionToOffset = new HashMap<>();
 
     //    private float avatarX;
+    // l24o
     private static final float AVATAR_BASE_SIZE_DP = 64f; // was 42
-    private static final float AVATAR_BASE_Y_DIFF = 36f;
+    private static final float AVATAR_BASE_Y_DIFF = 4f;
     private static final float AVATAR_INTERMEDIATE_EXTRA_DP = 32f; // was 18
     private static final float AVATAR_FULL_EXTRA_DP = 64f; // was 42
     private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 190f; // was 88
+    private float avatarBaseScale = -1f, avatarBaseHalf = -1f;
+    private AvatarMetaball metaball;
+    private AvatarMetaballOverlay metaballOverlay;
+
     private float avatarY;
     private float avatarScale;
     private float nameX;
@@ -14876,14 +14879,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         float p;
         if (metaball.hasCameraTarget()) {
-            // Distance from avatar top to bottom edge of camera (positive while apart)
             float gap = avatarTopScreen - metaball.getInnerBottomYInWindow();
             p = Utilities.clamp(1f - gap / METABALL_TRIGGER, 1f, 0f);
         } else {
-            // Legacy behaviour: distance from avatar centre to top edge of screen (0)
             p = Utilities.clamp(1f - (avatarTopScreen + r) / METABALL_TRIGGER, 1f, 0f);
         }
-        metaball.update(cx, cy, r, p);
+        metaball.update(cy, r, p);
 //        metaballOverlay.update(cx, cy, r, p);
     }
 
