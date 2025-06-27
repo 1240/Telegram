@@ -1216,7 +1216,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
-                if (hasEmoji) {
+                if (hasEmoji && avatarMetaballAnimationProgress < 1f) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     final float full = emojiFullT.set(emojiIsCollectible);
                     if (loadedScale > 0) {
@@ -14867,25 +14867,89 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    private static final float P_START = 0.02f;
+    private static final float P_CAMERA_EXPAND_END = 0.12f;
+    private static final float P_AVATAR_SHRINK_END = 0.89f;
+    private static final float CAMERA_MIN_SCALE = 0.5f;
+    private float avatarMetaballAnimationProgress;
+
     private void updateMetaball() {
         if (metaballOverlay == null || metaball == null || avatarContainer == null) return;
-        float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
+
+        final float baseAvatarR = avatarContainer.getWidth() / 2f;
         int[] coords = new int[2];
         avatarContainer.getLocationInWindow(coords);
-        float cy = avatarContainer.getY() + r;
-        float avatarTopScreen = coords[1]; // top of avatar in window coords
 
         final float connectThreshold = AvatarMetaball.CONNECT_THRESHOLD;
+        final float cameraExpansion = AvatarMetaball.CAMERA_EXPANSION_MAX;
 
-        float p;
+        float avatarScaleCurrent = avatarContainer.getScaleX();
+        float currentAvatarR = baseAvatarR * avatarScaleCurrent;
+
         if (metaball.hasCameraTarget()) {
-            float gap = avatarTopScreen - metaball.getInnerBottomYInWindow();
-            p = Utilities.clamp(1f - gap / connectThreshold, 1f, 0f);
+            float cameraBaseR = metaball.getBaseCameraRadius();
+            float gapEdges = coords[1] - (metaball.getCameraCenterYInWindow() + cameraBaseR); // avatar‑top − camera‑bottom
+            float denom = connectThreshold + currentAvatarR + cameraBaseR;
+            avatarMetaballAnimationProgress = Utilities.clamp((connectThreshold - gapEdges) / denom, 1f, 0f);
         } else {
-            p = Utilities.clamp(1f - (avatarTopScreen + r) / connectThreshold, 1f, 0f);
+            float gapEdges = coords[1] + currentAvatarR; // distance to screen‑top
+            float offscreenR = currentAvatarR * AvatarMetaball.OFFSCREEN_TARGET_FACTOR;
+            float denom = connectThreshold + currentAvatarR + offscreenR;
+            avatarMetaballAnimationProgress = Utilities.clamp((connectThreshold - gapEdges) / denom, 1f, 0f);
         }
-        metaball.update(cy, r, p);
-//        metaballOverlay.update(cx, cy, r, p);
+
+        float camScale;
+        if (avatarMetaballAnimationProgress <= P_START) {
+            camScale = CAMERA_MIN_SCALE;
+        } else if (avatarMetaballAnimationProgress < P_CAMERA_EXPAND_END) {
+            float t = (avatarMetaballAnimationProgress - P_START) / (P_CAMERA_EXPAND_END - P_START);
+            camScale = AndroidUtilities.lerp(CAMERA_MIN_SCALE, cameraExpansion, t);
+        } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
+            camScale = cameraExpansion;
+        } else {
+            float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
+            camScale = AndroidUtilities.lerp(cameraExpansion, CAMERA_MIN_SCALE, t);
+        }
+        metaball.setCameraScale(camScale);
+
+        float avatarTargetScale;
+        if (metaball.hasCameraTarget() && metaball.getBaseCameraRadius() > 0) {
+            avatarTargetScale = (metaball.getBaseCameraRadius() * cameraExpansion) / baseAvatarR;
+        } else {
+            avatarTargetScale = 0.55f;
+        }
+        float avatarEndScale = avatarTargetScale * (CAMERA_MIN_SCALE / cameraExpansion);
+
+        float avatarScale;
+        if (avatarMetaballAnimationProgress <= P_START) {
+            avatarScale = avatarScaleCurrent;
+        } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
+            float t = (avatarMetaballAnimationProgress - P_START) / (P_AVATAR_SHRINK_END - P_START);
+            avatarScale = AndroidUtilities.lerp(avatarScaleCurrent, avatarTargetScale, t);
+        } else {
+            float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
+            avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
+        }
+        float avatarContainerAlpha;
+        if (avatarMetaballAnimationProgress >= P_AVATAR_SHRINK_END) {
+            avatarContainerAlpha = 0;
+        } else if (Math.abs(avatarScale - avatarTargetScale) < 0.0001f) {
+            avatarContainerAlpha = 0;
+        } else {
+            avatarContainerAlpha = 1;
+        }
+        avatarContainer.setAlpha(avatarContainerAlpha);
+        metaballOverlay.setAlpha(avatarContainerAlpha);
+        avatarContainer.setScaleX(avatarScale);
+        avatarContainer.setScaleY(avatarScale);
+
+        final float r = baseAvatarR * avatarScale;
+        final float cy = avatarContainer.getY() + r;
+
+        metaball.update(cy, r, avatarMetaballAnimationProgress);
+        if (metaballOverlay != null) {
+            metaballOverlay.update(cy, r, avatarMetaballAnimationProgress);
+        }
     }
 
 }

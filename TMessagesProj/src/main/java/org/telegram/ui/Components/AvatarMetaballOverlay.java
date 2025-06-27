@@ -10,7 +10,7 @@ import org.telegram.messenger.Utilities;
 public class AvatarMetaballOverlay extends View {
     private final Paint avatarOverlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    private float avatarCx, avatarCy, avatarR;
+    private float avatarCy, avatarR;
     private float progress;
 
     public AvatarMetaballOverlay(Context ctx) {
@@ -20,8 +20,7 @@ public class AvatarMetaballOverlay extends View {
         avatarOverlayPaint.setColor(0xFF000000);
     }
 
-    public void update(float cx, float cy, float r, float prog) {
-        avatarCx = cx;
+    public void update(float cy, float r, float prog) {
         avatarCy = cy;
         avatarR = r;
         progress = Utilities.clamp(prog, 1f, 0f);
@@ -30,9 +29,8 @@ public class AvatarMetaballOverlay extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (progress <= 0f) return;
+        if (progress <= 0f || progress == 1f) return;
         avatarOverlayPaint.setAlpha((int) (255 * progress));
-        canvas.drawCircle(avatarCx, avatarCy, avatarR, avatarOverlayPaint);
+        canvas.drawCircle(getWidth() / 2f, avatarCy, avatarR, avatarOverlayPaint);
     }
-
 }

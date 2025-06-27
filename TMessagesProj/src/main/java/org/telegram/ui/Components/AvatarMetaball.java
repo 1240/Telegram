@@ -37,6 +37,9 @@ public class AvatarMetaball extends View {
     private static final float HALF_PI = (float) (Math.PI / 2);
     public static final float CONNECT_THRESHOLD = AndroidUtilities.dp(13); // 13 dp
     private static final float HANDLE_SIZE = 2.4f;
+    public static final float OFFSCREEN_TARGET_FACTOR = 4f;     // was local R_M
+    public static final float CAMERA_EXPANSION_MAX   = 1.01f;   // 35 % grow for camera metaball
+    private       float cameraScale                  = 1f;      // runtime scale for camera metaball
 
     public AvatarMetaball(Context ctx) {
         super(ctx);
@@ -88,11 +91,10 @@ public class AvatarMetaball extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        if (progress <= 0f) return;
+        if (progress <= 0f || progress == 1f) return;
 
         float centerX = getWidth() / 2f;
         float EARLY_PULL = .1f;
-        float R_M = 4f;
         float STICKINESS = progress < .6 ? .5f : 0.5f - (progress - 0.6f);
 
         final float r = avatarR;
@@ -101,9 +103,9 @@ public class AvatarMetaball extends View {
             int[] loc = new int[2];
             getLocationOnScreen(loc);
             y2 = cameraCy - loc[1];
-            tr = cameraR;
+            tr = cameraR * cameraScale;
         } else {
-            tr = r * R_M;
+            tr = r * OFFSCREEN_TARGET_FACTOR;
             y2 = -tr;
         }
 
@@ -172,5 +174,20 @@ public class AvatarMetaball extends View {
 
     private static double clamp(double v) {
         return v > 1 ? 1 : (v < -1 ? -1 : v);
+    }
+    /** Scale applied to the camera metaball during the connection animation. */
+    public void setCameraScale(float scale) {
+        cameraScale = scale;
+        invalidate();
+    }
+
+    /** Base (unscaled) camera radius, returns 0 if not using the camera target. */
+    public float getBaseCameraRadius() {
+        return cameraR;
+    }
+
+    /** Center‑Y of the camera metaball in window coordinates (unscaled). */
+    public float getCameraCenterYInWindow() {
+        return cameraCy;
     }
 }
