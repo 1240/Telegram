@@ -5758,7 +5758,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.setScaleY(avatarScale);
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
         avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, value));
-//        updateMetaball();
+        updateMetaball();
         avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
         if (storyView != null) {
             storyView.setExpandProgress(value);
@@ -7675,7 +7675,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     avatarContainer.setScaleX(extraAvatarScale);
                     avatarContainer.setScaleY(extraAvatarScale);
 //                    avatarContainer.setTranslationX(avatarX);
-                    float diffFast = (float) Math.pow(diff, 2f); // Square curve → faster rise
+                    float diffFast = (float) Math.pow(diff, 1f); // Square curve → faster rise
                     float avatarYFast = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                             + ActionBar.getCurrentActionBarHeight() / 2.0f * (1.0f + diffFast)
                             - AVATAR_BASE_SIZE_DP / 2f * AndroidUtilities.density
@@ -14939,7 +14939,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarContainerAlpha = 1;
         }
         avatarContainer.setAlpha(avatarContainerAlpha);
-        metaballOverlay.setAlpha((avatarsViewPager != null || avatarsViewPager.getVisibility() == View.GONE) ? avatarContainerAlpha : 0);
+        metaballOverlay.setAlpha((avatarsViewPager == null || avatarsViewPager.getVisibility() == View.VISIBLE) ? 0 : avatarContainerAlpha);//how ?
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 

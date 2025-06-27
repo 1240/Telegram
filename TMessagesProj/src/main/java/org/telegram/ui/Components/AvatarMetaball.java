@@ -94,8 +94,8 @@ public class AvatarMetaball extends View {
         if (progress <= 0f || progress == 1f) return;
 
         float centerX = getWidth() / 2f;
-        float EARLY_PULL = .1f;
-        float STICKINESS = progress < .6 ? .5f : 0.5f - (progress - 0.6f);
+        float EARLY_PULL = .5f;
+        float STICKINESS = .1f;
 
         final float r = avatarR;
         float tr, y2;
