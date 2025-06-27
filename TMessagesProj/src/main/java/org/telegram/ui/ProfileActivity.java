@@ -5758,7 +5758,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.setScaleY(avatarScale);
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
         avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, value));
-        updateMetaball();
+//        updateMetaball();
         avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
         if (storyView != null) {
             storyView.setExpandProgress(value);
@@ -14939,7 +14939,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarContainerAlpha = 1;
         }
         avatarContainer.setAlpha(avatarContainerAlpha);
-        metaballOverlay.setAlpha(avatarContainerAlpha);
+        metaballOverlay.setAlpha((avatarsViewPager != null || avatarsViewPager.getVisibility() == View.GONE) ? avatarContainerAlpha : 0);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 
@@ -14947,9 +14947,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final float cy = avatarContainer.getY() + r;
 
         metaball.update(cy, r, avatarMetaballAnimationProgress);
-        if (metaballOverlay != null) {
-            metaballOverlay.update(cy, r, avatarMetaballAnimationProgress);
-        }
+        metaballOverlay.update(cy, r, avatarMetaballAnimationProgress);
     }
 
 }
