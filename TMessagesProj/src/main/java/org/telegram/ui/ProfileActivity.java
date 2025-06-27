@@ -804,7 +804,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     public static class AvatarImageView extends BackupImageView {
-        public static final float EXTRA_DP = 40f;
+        public static final float EXTRA_DP = 0f;
         //        private BitmapShader tailShader;
         private final Paint tailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private float expandProgress;
@@ -2983,9 +2983,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         overlaysView.setOverlaysVisible();
                         overlaysView.setAlphaValue(1.0f, false);
                         avatarImage.setForegroundAlpha(1.0f);
-//                        avatarContainer.setVisibility(View.GONE);
-//                        avatarsViewPager.resetCurrentItem();
-//                        avatarsViewPager.setVisibility(View.VISIBLE);
+                        avatarContainer.setVisibility(View.GONE);
+                        avatarsViewPager.resetCurrentItem();
+                        avatarsViewPager.setVisibility(View.VISIBLE);
                         if (showStatusButton != null) {
                             showStatusButton.setBackgroundColor(0x23ffffff);
                         }
@@ -3785,8 +3785,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         if (view != null) {
                             if (isPulledDown) {
                                 final int actionBarHeight = ActionBar.getCurrentActionBarHeight() + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
-                                int dy = view.getTop() - listView.getPaddingTop();
-                                listView.smoothScrollBy(0, dy, CubicBezierInterpolator.EASE_OUT_QUINT);
+                                listView.smoothScrollBy(0, view.getTop() - listView.getMeasuredWidth() + actionBarHeight, CubicBezierInterpolator.EASE_OUT_QUINT);
                             } else {
                                 listView.smoothScrollBy(0, view.getTop() - AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP), CubicBezierInterpolator.EASE_OUT_QUINT);
                             }
@@ -7489,8 +7488,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             public void onAnimationEnd(Animator animation) {
                                 expandAnimator.removeListener(this);
                                 topView.setBackgroundColor(Color.BLACK);
-//                                avatarContainer.setVisibility(View.GONE);
-//                                avatarsViewPager.setVisibility(View.VISIBLE);
+                                avatarContainer.setVisibility(View.GONE);
+                                avatarsViewPager.setVisibility(View.VISIBLE);
                             }
                         });
                         expandAnimator.start();
@@ -7662,8 +7661,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 float nameScale = 1.0f + 0.12f * diff;
                 if (expandAnimator == null || !expandAnimator.isRunning()) {
-                    FrameLayout.LayoutParams lp =
-                            (FrameLayout.LayoutParams) avatarContainer.getLayoutParams();
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) avatarContainer.getLayoutParams();
                     int tailPx = avatarImage != null ? (int) avatarImage.getExtraTailPx() : 0;
                     if (lp.height != lp.width + tailPx) {
                         lp.height = lp.width + tailPx;
@@ -9026,9 +9024,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (playProfileAnimation == 2) {
                         playProfileAnimation = 1;
                         avatarImage.setForegroundAlpha(1.0f);
-//                        avatarContainer.setVisibility(View.GONE);
-//                        avatarsViewPager.resetCurrentItem();
-//                        avatarsViewPager.setVisibility(View.VISIBLE);
+                        avatarContainer.setVisibility(View.GONE);
+                        avatarsViewPager.resetCurrentItem();
+                        avatarsViewPager.setVisibility(View.VISIBLE);
                     }
                     transitionOnlineText = null;
                     avatarContainer2.invalidate();
