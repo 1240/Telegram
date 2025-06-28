@@ -14880,7 +14880,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         int[] coords = new int[2];
         avatarContainer.getLocationInWindow(coords);
 
-        final float connectThreshold = AvatarMetaball.CONNECT_THRESHOLD;
+        final float connectThreshold = metaball.getConnectThreshold();
         final float cameraExpansion = AvatarMetaball.CAMERA_EXPANSION_MAX;
 
         float avatarScaleCurrent = avatarContainer.getScaleX();
@@ -14921,25 +14921,34 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float avatarEndScale = avatarTargetScale * (CAMERA_MIN_SCALE / cameraExpansion);
 
         float avatarScale;
-        if (avatarMetaballAnimationProgress <= P_START) {
-            avatarScale = avatarScaleCurrent;
-        } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
-            float t = (avatarMetaballAnimationProgress - P_START) / (P_AVATAR_SHRINK_END - P_START);
-            avatarScale = AndroidUtilities.lerp(avatarScaleCurrent, avatarTargetScale, t);
-        } else {
-            float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
-            avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
-        }
         float avatarContainerAlpha;
-        if (avatarMetaballAnimationProgress >= P_AVATAR_SHRINK_END) {
-            avatarContainerAlpha = 0;
-        } else if (Math.abs(avatarScale - avatarTargetScale) < 0.0001f) {
-            avatarContainerAlpha = 0;
+
+        if (metaball.hasCameraTarget()) {
+            if (avatarMetaballAnimationProgress <= P_START) {
+                avatarScale = avatarScaleCurrent;
+            } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
+                float t = (avatarMetaballAnimationProgress - P_START) / (P_AVATAR_SHRINK_END - P_START);
+                avatarScale = AndroidUtilities.lerp(avatarScaleCurrent, avatarTargetScale, t);
+            } else {
+                float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
+                avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
+            }
+
+            if (avatarMetaballAnimationProgress >= P_AVATAR_SHRINK_END) {
+                avatarContainerAlpha = 0;
+            } else if (Math.abs(avatarScale - avatarTargetScale) < 0.0001f) {
+                avatarContainerAlpha = 0;
+            } else {
+                avatarContainerAlpha = 1;
+            }
         } else {
+            avatarMetaballAnimationProgress = Math.min(.999f, avatarMetaballAnimationProgress);
             avatarContainerAlpha = 1;
+            avatarScale = Math.max(1f, avatarScaleCurrent);
         }
         avatarContainer.setAlpha(avatarContainerAlpha);
-        metaballOverlay.setAlpha((avatarsViewPager == null || avatarsViewPager.getVisibility() == View.VISIBLE) ? 0 : avatarContainerAlpha);//how ?
+        metaballOverlay.setAlpha(avatarScaleCurrent > 1.5f ? 0 : avatarContainerAlpha);
+        metaball.setAlpha(avatarScaleCurrent > 1.5f ? 0 : avatarContainerAlpha);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 

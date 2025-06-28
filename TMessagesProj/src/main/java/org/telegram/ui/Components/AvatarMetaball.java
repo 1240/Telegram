@@ -4,19 +4,19 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.view.View;
-
+import android.graphics.Rect;
 import android.os.Build;
+import android.view.DisplayCutout;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
-import android.view.DisplayCutout;
-import android.graphics.Rect;
-import java.util.List;
 
 import com.google.zxing.common.detector.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.Utilities;
+
+import java.util.List;
 
 public class AvatarMetaball extends View {
 
@@ -35,11 +35,20 @@ public class AvatarMetaball extends View {
             h3 = new Point(), h4 = new Point();
 
     private static final float HALF_PI = (float) (Math.PI / 2);
-    public static final float CONNECT_THRESHOLD = AndroidUtilities.dp(13); // 13 dp
     private static final float HANDLE_SIZE = 2.4f;
-    public static final float OFFSCREEN_TARGET_FACTOR = 4f;     // was local R_M
-    public static final float CAMERA_EXPANSION_MAX   = 1.01f;   // 35 % grow for camera metaball
-    private       float cameraScale                  = 1f;      // runtime scale for camera metaball
+    public static final float OFFSCREEN_TARGET_FACTOR = 4f;
+    public static final float CAMERA_EXPANSION_MAX = 1.01f;
+    private float cameraScale = 1f;
+
+    public float getConnectThreshold() {
+        float value;
+        if (hasCameraTarget()) {
+            value = AndroidUtilities.dp(13);
+        } else {
+            value = AndroidUtilities.dp(64);
+        }
+        return value;
+    }
 
     public AvatarMetaball(Context ctx) {
         super(ctx);
@@ -57,11 +66,10 @@ public class AvatarMetaball extends View {
                         if (bounds != null) {
                             int screenW = getResources().getDisplayMetrics().widthPixels;
                             for (Rect r : bounds) {
-                                // accept only top‑edge cut‑outs centred horizontally
                                 if (r.top == 0 &&
                                         Math.abs((r.left + r.right) / 2f - screenW / 2f) < r.width() / 2f) {
-                                    cameraR  = Math.min(r.width(), r.height()) / 2f; // exact physical radius (use width if taller than wide)
-                                    cameraCy = r.bottom - cameraR; // center = bottom minus radius
+                                    cameraR = Math.min(r.width(), r.height()) / 2f;
+                                    cameraCy = r.bottom - cameraR;
                                     useCameraTarget = true;
                                     break;
                                 }
@@ -94,17 +102,21 @@ public class AvatarMetaball extends View {
         if (progress <= 0f || progress == 1f) return;
 
         float centerX = getWidth() / 2f;
-        float EARLY_PULL = .5f;
-        float STICKINESS = .1f;
 
         final float r = avatarR;
         float tr, y2;
+        float EARLY_PULL;
+        float STICKINESS;
         if (useCameraTarget) {
+            EARLY_PULL = .5f;
+            STICKINESS = .3f;
             int[] loc = new int[2];
             getLocationOnScreen(loc);
             y2 = cameraCy - loc[1];
             tr = cameraR * cameraScale;
         } else {
+            EARLY_PULL = .1f;
+            STICKINESS = progress < .3 ? .5f : 0.5f - (progress - 0.3f);
             tr = r * OFFSCREEN_TARGET_FACTOR;
             y2 = -tr;
         }
@@ -113,7 +125,7 @@ public class AvatarMetaball extends View {
         canvas.drawCircle(centerX, y2, tr, paint);
         final float d = Math.abs(y2 - y1);
         float gap = d - (r + tr);
-        if (gap > CONNECT_THRESHOLD) {
+        if (gap > getConnectThreshold()) {
             canvas.drawCircle(centerX, y1, r, paint);
             return;
         }
@@ -175,18 +187,25 @@ public class AvatarMetaball extends View {
     private static double clamp(double v) {
         return v > 1 ? 1 : (v < -1 ? -1 : v);
     }
-    /** Scale applied to the camera metaball during the connection animation. */
+
+    /**
+     * Scale applied to the camera metaball during the connection animation.
+     */
     public void setCameraScale(float scale) {
         cameraScale = scale;
         invalidate();
     }
 
-    /** Base (unscaled) camera radius, returns 0 if not using the camera target. */
+    /**
+     * Base (unscaled) camera radius, returns 0 if not using the camera target.
+     */
     public float getBaseCameraRadius() {
         return cameraR;
     }
 
-    /** Center‑Y of the camera metaball in window coordinates (unscaled). */
+    /**
+     * Center‑Y of the camera metaball in window coordinates (unscaled).
+     */
     public float getCameraCenterYInWindow() {
         return cameraCy;
     }
