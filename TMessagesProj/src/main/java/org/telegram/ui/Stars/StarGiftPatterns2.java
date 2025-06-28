@@ -22,7 +22,7 @@ public final class StarGiftPatterns2 {
             2, 2, 1, 2, 2, 2,
     };
 
-    private static final float[] GROUP_DELAY = {0.40f, 0.43f, 0.45f};
+    private static final float[] GROUP_DELAY = {0.3f, 0.33f, 0.35f};
     private static final float[] GROUP_DURATION = {0.40f, 0.45f, 0.50f};
     private static final float[][] ORBIT_18 = buildOrbit();
 
