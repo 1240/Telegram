@@ -1223,7 +1223,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         canvas.save();
                         canvas.clipRect(0, 0, getMeasuredWidth(), y1);
                         final float diff = Math.min(1f, extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP));
-                        float diffFast = (float) Math.pow(diff, 4f);
+                        float diffFast = (float) Math.pow(diff, 3f);
                         float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
                         int[] coords = new int[2];
                         avatarContainer.getLocationInWindow(coords);
@@ -7738,9 +7738,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF);
                 float centerNameY = avatarTop + avatarBase * avatarScale + tailPx + AndroidUtilities.dp(4f);
                 float centerOnlineY = centerNameY + nameTextView[1].getMeasuredHeight() * nameScale + AndroidUtilities.dp(2);
-
-                nameY = AndroidUtilities.lerp(leftNameY, centerNameY, diff);
-                onlineY = AndroidUtilities.lerp(leftOnlineY, centerOnlineY, diff);
+                float newDiff = Math.max(diff * diff, 0f);
+                nameY = AndroidUtilities.lerp(leftNameY, centerNameY, newDiff);
+                onlineY = AndroidUtilities.lerp(leftOnlineY, centerOnlineY, newDiff);
                 float extraTail = avatarImage.getExtraTailPx();
                 nameY -= extraTail;
                 onlineY -= extraTail;
@@ -14934,7 +14934,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
             }
 
-            if (avatarMetaballAnimationProgress >= P_AVATAR_SHRINK_END) {
+            if (avatarMetaballAnimationProgress >= 1) {
                 avatarContainerAlpha = 0;
             } else if (Math.abs(avatarScale - avatarTargetScale) < 0.0001f) {
                 avatarContainerAlpha = 0;
