@@ -1216,8 +1216,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
-                final float diff = Math.min(1f, extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP));
-                float diffFast = (float) Math.pow(diff, 3f);
+                final float diff = extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP);
+                float diffFast = MathUtils.clamp((float) Math.pow(diff, 3f), 0f, 1f);
+//                if (diffFast >= .7) {
+                    StarGiftPatterns2.resetAnchor();
+//                }
                 if (hasEmoji && avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     final float full = emojiFullT.set(emojiIsCollectible);

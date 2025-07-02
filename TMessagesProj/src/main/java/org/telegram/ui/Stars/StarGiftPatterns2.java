@@ -76,12 +76,6 @@ public final class StarGiftPatterns2 {
             float cy,
             float progress
     ) {
-
-        progress = MathUtils.clamp(progress, 0f, 1f);
-        if (progress >= 1) {
-            resetAnchor();
-        }
-
         if (Float.isNaN(ANCHOR_CX) || Float.isNaN(ANCHOR_CY)) {
             ANCHOR_CX = canvas.getWidth() / 2f;
             ANCHOR_CY = cy;
@@ -148,8 +142,6 @@ public final class StarGiftPatterns2 {
             float cx, float cy,                 // центр притяжения (тот же, что для emoji)
             float progress                      // общий прогресс анимации 0…1
     ) {
-        if (progress >= 1f) resetAnchor();     // та же привязка, что у emoji
-
         if (Float.isNaN(ANCHOR_CX) || Float.isNaN(ANCHOR_CY)) {
             ANCHOR_CX = canvas.getWidth() / 2f;
             ANCHOR_CY = cy;
