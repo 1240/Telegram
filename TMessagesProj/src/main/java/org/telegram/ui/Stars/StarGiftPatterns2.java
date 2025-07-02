@@ -8,6 +8,10 @@ import android.graphics.drawable.Drawable;
 
 import androidx.core.math.MathUtils;
 
+import org.telegram.messenger.AndroidUtilities;
+
+import java.util.List;
+
 public final class StarGiftPatterns2 {
 
     private StarGiftPatterns2() {
@@ -114,6 +118,71 @@ public final class StarGiftPatterns2 {
             icon.setAlpha(Math.round(255 * (baseA * (0.5f + 0.5f * lp))));
 
             icon.draw(canvas);
+        }
+    }
+
+    private static final int[] GIFT_MASK_18 = {
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 1, 1,
+            0, 1, 1, 1, 0, 1
+    };
+
+    private static final int[] GIFT_GROUP = {
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 2,
+            0, 1, 0, 2, 0, 1
+    };
+
+    private static final float[] GIFT_DELAY = {0.30f, 0.33f, 0.45f};
+    private static final float[] GIFT_DURATION = {0.40f, 0.45f, 0.50f};
+
+
+    private static final float GIFT_PATTERN_SCALE = 1.2f;   // глобальный масштаб орбиты
+    private static final float GIFT_HORIZONTAL_RATIO = 1.0f;  // «растяжение» по X
+    private static final float GIFT_VERTICAL_RATIO = 1f;  // «сплющивание» по Y
+    private static final float GIFT_SIZE_MULT = 1.1f;  // итоговый размер (1.0 = как emoji)
+
+    public static void drawOrbitGifts(
+            Canvas canvas,
+            List<ProfileGiftsView.Gift> gifts,  // упорядоченный список 0…N
+            float cx, float cy,                 // центр притяжения (тот же, что для emoji)
+            float progress                      // общий прогресс анимации 0…1
+    ) {
+        if (progress >= 1f) resetAnchor();     // та же привязка, что у emoji
+
+        if (Float.isNaN(ANCHOR_CX) || Float.isNaN(ANCHOR_CY)) {
+            ANCHOR_CX = canvas.getWidth() / 2f;
+            ANCHOR_CY = cy;
+        }
+
+        int giftIndex = 0;
+        for (int i = 0; i < ORBIT_18.length; i++) {
+            if (GIFT_MASK_18[i] == 0) continue;
+            if (giftIndex >= gifts.size()) break;
+
+            ProfileGiftsView.Gift gift = gifts.get(giftIndex++);
+
+            float[] p = ORBIT_18[i];
+            float tx = p[0], ty = p[1];
+            float baseAlpha = p[3];
+
+            int g = GIFT_GROUP[i];
+            float lp = (progress - GIFT_DELAY[g]) / GIFT_DURATION[g];
+            lp = MathUtils.clamp(lp, 0f, 1f);
+            lp = 1f - (float) Math.pow(1f - lp, 3);   // ease‑out‑cubic
+
+            float offsetX = dpf2(tx * GIFT_PATTERN_SCALE * GIFT_HORIZONTAL_RATIO);
+            float offsetY = dpf2(ty * GIFT_PATTERN_SCALE * GIFT_VERTICAL_RATIO);
+            float startX = ANCHOR_CX + offsetX;
+            float startY = ANCHOR_CY + offsetY;
+            float x = cx + (startX - cx) * lp;
+            float y = cy + (startY - cy) * lp - AndroidUtilities.dp(12);
+
+            float scale = (0.5f + 0.5f * lp) * GIFT_SIZE_MULT;
+//            float alpha = baseAlpha * (0.5f + 0.5f * lp);
+            float alpha = 1f;
+
+            gift.draw(canvas, x, y, scale, 0 /* rotation */, gift.animatedFloat.set(1f) * alpha, 1f);
         }
     }
 }

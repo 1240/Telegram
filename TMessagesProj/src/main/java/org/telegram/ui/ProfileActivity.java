@@ -1216,14 +1216,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
+                final float diff = Math.min(1f, extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP));
+                float diffFast = (float) Math.pow(diff, 3f);
                 if (hasEmoji && avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     final float full = emojiFullT.set(emojiIsCollectible);
                     if (loadedScale > 0) {
                         canvas.save();
                         canvas.clipRect(0, 0, getMeasuredWidth(), y1);
-                        final float diff = Math.min(1f, extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP));
-                        float diffFast = (float) Math.pow(diff, 3f);
                         float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
                         int[] coords = new int[2];
                         avatarContainer.getLocationInWindow(coords);
@@ -1234,6 +1234,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         canvas.restore();
                     }
                 }
+                giftsView.setProgress(diffFast);
+                giftsView.setAlpha(avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END ? 1 : 0);
                 if (previousTransitionFragment != null) {
                     ActionBar actionBar = previousTransitionFragment.getActionBar();
                     ActionBarMenu menu = actionBar.menu;
@@ -4987,6 +4989,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         frameLayout.addView(avatarContainer2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
         avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP/2);
         avatarContainer.setPivotY(0);
+
+        giftsView = new ProfileGiftsView(context, currentAccount, getDialogId(), avatarContainer, avatarImage, resourcesProvider);
+        avatarContainer2.addView(giftsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
         avatarContainer2.addView(metaball);
         avatarContainer2.addView(avatarContainer, LayoutHelper.createFrame(AVATAR_BASE_SIZE_DP, AVATAR_BASE_SIZE_DP, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
         avatarImage = new AvatarImageView(context) {
@@ -5307,8 +5313,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarImage.setHasStories(needInsetForStories());
         }
         avatarContainer2.addView(storyView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        giftsView = new ProfileGiftsView(context, currentAccount, getDialogId(), avatarContainer, avatarImage, resourcesProvider);
-        avatarContainer2.addView(giftsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
         updateProfileData(true);
 
         writeButton = new RLottieImageView(context);
