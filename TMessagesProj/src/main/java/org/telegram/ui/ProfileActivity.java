@@ -14920,8 +14920,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             avatarMetaballAnimationProgress = Utilities.clamp(avatarMetaballAnimationProgress, 1f, 0f);
         } else {
+            float centerAvatarY = coords[1] + currentAvatarR;
             float gapEdges = coords[1] + currentAvatarR;
             float offscreenR = currentAvatarR * AvatarMetaball.OFFSCREEN_TARGET_FACTOR;
+            centerDistance = centerAvatarY - (-offscreenR);
             float denom = connectThreshold + currentAvatarR + offscreenR;
             avatarMetaballAnimationProgress = Utilities.clamp((connectThreshold - gapEdges) / denom, 1f, 0f);
         }
