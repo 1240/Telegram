@@ -43,7 +43,7 @@ public class AvatarMetaball extends View {
     public float getConnectThreshold() {
         float value;
         if (hasCameraTarget()) {
-            value = AndroidUtilities.dp(13);
+            value = AndroidUtilities.dp(50);
         } else {
             value = AndroidUtilities.dp(64);
         }

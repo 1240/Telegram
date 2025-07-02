@@ -478,10 +478,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private static final float AVATAR_BASE_Y_DIFF = 4f;
     private static final float AVATAR_INTERMEDIATE_EXTRA_DP = 32f; // was 18
     private static final float AVATAR_FULL_EXTRA_DP = 64f; // was 42
-    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 190f; // was 88
-    private float avatarBaseScale = -1f, avatarBaseHalf = -1f;
+    private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 290f; // was 88
     private AvatarMetaball metaball;
     private AvatarMetaballOverlay metaballOverlay;
+    private FrameLayout toolbarButtonsFrame;
 
     private float avatarY;
     private float avatarScale;
@@ -1216,7 +1216,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
                 }
-                if (hasEmoji && avatarMetaballAnimationProgress < 1f) {
+                if (hasEmoji && avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     final float full = emojiFullT.set(emojiIsCollectible);
                     if (loadedScale > 0) {
@@ -5521,8 +5521,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             AndroidUtilities.runOnUIThread(this::scrollToSharedMedia);
         }
 
-        // Добавляем метабол оверлей поверх всего остального
         frameLayout.addView(metaballOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        toolbarButtonsFrame = new FrameLayout(context);
+        toolbarButtonsFrame.setBackgroundColor(Color.RED);
+        frameLayout.addView(toolbarButtonsFrame,
+                LayoutHelper.createFrame(
+                        LayoutHelper.MATCH_PARENT,
+                        96,
+                        Gravity.CENTER_HORIZONTAL));
+        toolbarButtonsFrame.post(this::updateToolbarButtonsFramePosition);
         return fragmentView;
     }
 
@@ -5864,6 +5871,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.requestLayout();
 
         updateCollectibleHint();
+        updateToolbarButtonsFramePosition();
     }
 
     private int getSmallAvatarRoundRadius() {
@@ -7782,6 +7790,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         updateEmojiStatusEffectPosition();
+        updateToolbarButtonsFramePosition();
     }
 
     public void updateQrItemVisibility(boolean animated) {
@@ -14881,18 +14890,33 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.getLocationInWindow(coords);
 
         final float connectThreshold = metaball.getConnectThreshold();
-        final float cameraExpansion = AvatarMetaball.CAMERA_EXPANSION_MAX;
+        final float cameraExpansion = Math.max(AndroidUtilities.dp2(14) / metaball.getBaseCameraRadius(), 1f);
 
         float avatarScaleCurrent = avatarContainer.getScaleX();
         float currentAvatarR = baseAvatarR * avatarScaleCurrent;
 
+        float centerDistance = 0;
         if (metaball.hasCameraTarget()) {
-            float cameraBaseR = metaball.getBaseCameraRadius();
-            float gapEdges = coords[1] - (metaball.getCameraCenterYInWindow() + cameraBaseR); // avatar‑top − camera‑bottom
-            float denom = connectThreshold + currentAvatarR + cameraBaseR;
-            avatarMetaballAnimationProgress = Utilities.clamp((connectThreshold - gapEdges) / denom, 1f, 0f);
+            float centerAvatarY = coords[1] + currentAvatarR;
+            float centerCameraY = metaball.getCameraCenterYInWindow();
+            centerDistance = centerAvatarY - centerCameraY;
+
+            final float extraRange = AndroidUtilities.dp(11);
+
+            if (centerDistance >= connectThreshold) {
+                avatarMetaballAnimationProgress = 0f;
+            } else if (centerDistance > 0f) {
+                avatarMetaballAnimationProgress =
+                        (connectThreshold - centerDistance) / connectThreshold * P_AVATAR_SHRINK_END;
+            } else {
+                float overshoot = Math.min(extraRange, -centerDistance);
+                avatarMetaballAnimationProgress =
+                        P_AVATAR_SHRINK_END + (overshoot / extraRange) * (1f - P_AVATAR_SHRINK_END);
+            }
+
+            avatarMetaballAnimationProgress = Utilities.clamp(avatarMetaballAnimationProgress, 1f, 0f);
         } else {
-            float gapEdges = coords[1] + currentAvatarR; // distance to screen‑top
+            float gapEdges = coords[1] + currentAvatarR;
             float offscreenR = currentAvatarR * AvatarMetaball.OFFSCREEN_TARGET_FACTOR;
             float denom = connectThreshold + currentAvatarR + offscreenR;
             avatarMetaballAnimationProgress = Utilities.clamp((connectThreshold - gapEdges) / denom, 1f, 0f);
@@ -14921,7 +14945,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float avatarEndScale = avatarTargetScale * (CAMERA_MIN_SCALE / cameraExpansion);
 
         float avatarScale;
-        float avatarContainerAlpha;
 
         if (metaball.hasCameraTarget()) {
             if (avatarMetaballAnimationProgress <= P_START) {
@@ -14933,30 +14956,31 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
                 avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
             }
-
-            if (avatarMetaballAnimationProgress >= 1) {
-                avatarContainerAlpha = 0;
-            } else if (Math.abs(avatarScale - avatarTargetScale) < 0.0001f) {
-                avatarContainerAlpha = 0;
-            } else {
-                avatarContainerAlpha = 1;
-            }
         } else {
             avatarMetaballAnimationProgress = Math.min(.999f, avatarMetaballAnimationProgress);
-            avatarContainerAlpha = 1;
             avatarScale = Math.max(1f, avatarScaleCurrent);
         }
-        avatarContainer.setAlpha(avatarContainerAlpha);
-        metaballOverlay.setAlpha(avatarScaleCurrent > 1.5f ? 0 : avatarContainerAlpha);
-        metaball.setAlpha(avatarScaleCurrent > 1.5f ? 0 : avatarContainerAlpha);
+        avatarContainer.setAlpha(centerDistance < 0 ? 0 : 1);
+        metaballOverlay.setAlpha(centerDistance < 0 || avatarScaleCurrent > 1.4f ? 0 : 1);
+        metaball.setAlpha(avatarScaleCurrent > 1.5f ? 0 : 1);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
 
         final float r = baseAvatarR * avatarScale;
-        final float cy = avatarContainer.getY() + r;
+        final float cy = coords[1] + r;
 
         metaball.update(cy, r, avatarMetaballAnimationProgress);
-        metaballOverlay.update(cy, r, avatarMetaballAnimationProgress);
+        metaballOverlay.update(cy, r, 1 - (centerDistance/connectThreshold));
+    }
+
+    private void updateToolbarButtonsFramePosition() {
+        if (toolbarButtonsFrame == null) {
+            return;
+        }
+        float toolbarBottom = ActionBar.getCurrentActionBarHeight()
+                + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                + extraHeight;
+        toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight());
     }
 
 }
