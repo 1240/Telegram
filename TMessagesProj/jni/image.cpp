@@ -658,6 +658,228 @@ inline static void zeroClearInt(int *p, size_t count) {
     memset(p, 0, sizeof(int) * count);
 }
 
+
+#include <jni.h>
+#include <android/bitmap.h>
+#include <cstdint>
+#include <cstdlib>
+#include <vector>
+#include <algorithm>
+
+#define CLAMP(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
+
+namespace {
+
+    struct BlurCtx {
+        std::vector<uint16_t> dv;     // 256 * divsum
+        std::vector<uint32_t> tmp;    // w * h, ARGB
+        std::vector<int>      vmin;   // max(w, h)
+
+        void ensure(int w, int h, int divsum) {
+            const size_t dvNeed = 256u * divsum;
+            if (dv.size() != dvNeed) {
+                dv.resize(dvNeed);
+                for (size_t i = 0; i < dvNeed; ++i)
+                    dv[i] = static_cast<uint16_t>(i / divsum);
+            }
+            const size_t wh = static_cast<size_t>(w) * h;
+            if (tmp.size() != wh)  tmp.resize(wh);
+            if (vmin.size() < static_cast<size_t>(std::max(w, h)))
+                vmin.resize(std::max(w, h));
+        }
+    };
+
+    struct BitmapLocker {
+        JNIEnv   *env;
+        jobject   bmp;
+        uint8_t  *ptr {nullptr};
+        bool      ok  {false};
+
+        BitmapLocker(JNIEnv *e, jobject b) : env(e), bmp(b) {
+            ok = (AndroidBitmap_lockPixels(env, bmp, reinterpret_cast<void **>(&ptr))
+                  == ANDROID_BITMAP_RESULT_SUCCESS);
+        }
+        ~BitmapLocker() {
+            if (ok) AndroidBitmap_unlockPixels(env, bmp);
+        }
+    };
+
+    static thread_local BlurCtx g_ctx;
+
+} // namespace
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_org_telegram_messenger_Utilities_stackBlurBitmap2(
+        JNIEnv *env, jclass /*clazz*/, jobject bitmap, jint radius) {
+
+    if (radius < 1) return;
+
+    AndroidBitmapInfo info{};
+    if (AndroidBitmap_getInfo(env, bitmap, &info) != ANDROID_BITMAP_RESULT_SUCCESS) return;
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) return;
+
+    const int w      = static_cast<int>(info.width);
+    const int h      = static_cast<int>(info.height);
+    const int stride = static_cast<int>(info.stride);
+    const int div    = radius * 2 + 1;
+    const int r1     = radius + 1;
+    const int divsum = ((div + 1) >> 1) * ((div + 1) >> 1);
+
+    g_ctx.ensure(w, h, divsum);
+    uint16_t *dv   = g_ctx.dv.data();
+    uint32_t *tmp  = g_ctx.tmp.data();
+    int      *vmin = g_ctx.vmin.data();
+
+    BitmapLocker lock(env, bitmap);
+    if (!lock.ok) return;
+    uint8_t *pixels = lock.ptr;
+
+    for (int y = 0; y < h; ++y) {
+        std::vector<int> stack(div * 4);
+        int rinsum = 0, ginsum = 0, binsum = 0, ainsum = 0;
+        int routsum = 0, goutsum = 0, boutsum = 0, aoutsum = 0;
+        int rsum = 0, gsum = 0, bsum = 0, asum = 0;
+        for (int i = -radius; i <= radius; ++i) {
+            const int idx = (i + radius) * 4;
+            const int xClamped = CLAMP(i, 0, w - 1);
+            const int off = y * stride + xClamped * 4;
+            stack[idx + 0] = pixels[off + 0];
+            stack[idx + 1] = pixels[off + 1];
+            stack[idx + 2] = pixels[off + 2];
+            stack[idx + 3] = pixels[off + 3];
+            const int rbs  = r1 - (i < 0 ? -i : i);
+            rsum += stack[idx + 0] * rbs;
+            gsum += stack[idx + 1] * rbs;
+            bsum += stack[idx + 2] * rbs;
+            asum += stack[idx + 3] * rbs;
+            if (i > 0) {
+                rinsum += stack[idx + 0];
+                ginsum += stack[idx + 1];
+                binsum += stack[idx + 2];
+                ainsum += stack[idx + 3];
+            } else {
+                routsum += stack[idx + 0];
+                goutsum += stack[idx + 1];
+                boutsum += stack[idx + 2];
+                aoutsum += stack[idx + 3];
+            }
+        }
+
+        int stackpointer = radius;
+
+        for (int x = 0; x < w; ++x) {
+            tmp[y * w + x] =
+                    (static_cast<uint32_t>(dv[rsum])      ) |
+                    (static_cast<uint32_t>(dv[gsum]) <<  8) |
+                    (static_cast<uint32_t>(dv[bsum]) << 16) |
+                    (static_cast<uint32_t>(dv[asum]) << 24);
+
+            /* Вычитаем ушедшие пиксели */
+            rsum -= routsum; gsum -= goutsum; bsum -= boutsum; asum -= aoutsum;
+
+            /* Сдвигаем стек */
+            int stackstart = stackpointer - radius + div;
+            if (stackstart >= div) stackstart -= div;
+            int *sir = &stack[stackstart * 4];
+
+            routsum -= sir[0]; goutsum -= sir[1]; boutsum -= sir[2]; aoutsum -= sir[3];
+
+            if (y == 0) vmin[x] = CLAMP(x + r1, 0, w - 1);
+
+            const int off = y * stride + vmin[x] * 4;
+            sir[0] = pixels[off + 0];
+            sir[1] = pixels[off + 1];
+            sir[2] = pixels[off + 2];
+            sir[3] = pixels[off + 3];
+
+            rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2]; ainsum += sir[3];
+
+            rsum += rinsum; gsum += ginsum; bsum += binsum; asum += ainsum;
+
+            /* Сдвиг указателя стека без % */
+            if (++stackpointer == div) stackpointer = 0;
+            sir = &stack[stackpointer * 4];
+
+            routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2]; aoutsum += sir[3];
+            rinsum -= sir[0]; ginsum -= sir[1]; binsum -= sir[2]; ainsum -= sir[3];
+        }
+    }
+
+    /* -------------------- 2. Вертикальный проход -------------------- */
+    for (int x = 0; x < w; ++x) {
+        std::vector<int> stack(div * 4);
+        int rinsum = 0, ginsum = 0, binsum = 0, ainsum = 0;
+        int routsum = 0, goutsum = 0, boutsum = 0, aoutsum = 0;
+        int rsum = 0, gsum = 0, bsum = 0, asum = 0;
+
+        int yp = -radius * w;
+        for (int i = -radius; i <= radius; ++i) {
+            const int yi = CLAMP(yp, 0, (h - 1) * w) + x;
+            const uint32_t px = tmp[yi];
+            const int idx = (i + radius) * 4;
+            stack[idx + 0] =  px        & 0xFF;
+            stack[idx + 1] = (px >>  8) & 0xFF;
+            stack[idx + 2] = (px >> 16) & 0xFF;
+            stack[idx + 3] = (px >> 24) & 0xFF;
+
+            const int rbs = r1 - (i < 0 ? -i : i);
+            rsum += stack[idx + 0] * rbs;
+            gsum += stack[idx + 1] * rbs;
+            bsum += stack[idx + 2] * rbs;
+            asum += stack[idx + 3] * rbs;
+
+            if (i > 0) {
+                rinsum += stack[idx + 0];
+                ginsum += stack[idx + 1];
+                binsum += stack[idx + 2];
+                ainsum += stack[idx + 3];
+            } else {
+                routsum += stack[idx + 0];
+                goutsum += stack[idx + 1];
+                boutsum += stack[idx + 2];
+                aoutsum += stack[idx + 3];
+            }
+            if (i < h - 1) yp += w;
+        }
+
+        int stackpointer = radius;
+
+        for (int y = 0; y < h; ++y) {
+            uint32_t *row32 = reinterpret_cast<uint32_t *>(pixels + y * stride);
+            row32[x] =
+                    (static_cast<uint32_t>(dv[rsum])      ) |
+                    (static_cast<uint32_t>(dv[gsum]) <<  8) |
+                    (static_cast<uint32_t>(dv[bsum]) << 16) |
+                    (static_cast<uint32_t>(dv[asum]) << 24);
+
+            rsum -= routsum; gsum -= goutsum; bsum -= boutsum; asum -= aoutsum;
+
+            int stackstart = stackpointer - radius + div;
+            if (stackstart >= div) stackstart -= div;
+            int *sir = &stack[stackstart * 4];
+
+            routsum -= sir[0]; goutsum -= sir[1]; boutsum -= sir[2]; aoutsum -= sir[3];
+
+            if (x == 0) vmin[y] = CLAMP(y + r1, 0, h - 1) * w;
+            const uint32_t px = tmp[x + vmin[y]];
+            sir[0] =  px        & 0xFF;
+            sir[1] = (px >>  8) & 0xFF;
+            sir[2] = (px >> 16) & 0xFF;
+            sir[3] = (px >> 24) & 0xFF;
+
+            rinsum += sir[0]; ginsum += sir[1]; binsum += sir[2]; ainsum += sir[3];
+            rsum   += rinsum; gsum   += ginsum; bsum   += binsum; asum   += ainsum;
+
+            if (++stackpointer == div) stackpointer = 0;
+            sir = &stack[stackpointer * 4];
+
+            routsum += sir[0]; goutsum += sir[1]; boutsum += sir[2]; aoutsum += sir[3];
+            rinsum -= sir[0];  ginsum -= sir[1];  binsum -= sir[2];  ainsum -= sir[3];
+        }
+    }
+}
+
 JNIEXPORT void Java_org_telegram_messenger_Utilities_stackBlurBitmap(JNIEnv *env, jclass clazz, jobject bitmap, jint radius) {
     if (radius < 1) {
         return;

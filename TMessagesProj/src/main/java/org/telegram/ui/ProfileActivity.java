@@ -15,6 +15,7 @@ import static org.telegram.messenger.ContactsController.PRIVACY_RULES_TYPE_ADDED
 import static org.telegram.messenger.LocaleController.formatPluralString;
 import static org.telegram.messenger.LocaleController.formatString;
 import static org.telegram.messenger.LocaleController.getString;
+import static org.telegram.ui.ActionBar.Theme.currentColor;
 import static org.telegram.ui.Stars.StarsIntroActivity.formatStarsAmountShort;
 import static org.telegram.ui.bots.AffiliateProgramFragment.percents;
 
@@ -75,6 +76,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
+import android.util.AttributeSet;
 import android.util.Property;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -481,7 +483,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private static final float TOOLBAR_INTERMEDIATE_HEIGHT_DP = 290f; // was 88
     private AvatarMetaball metaball;
     private AvatarMetaballOverlay metaballOverlay;
-    private FrameLayout toolbarButtonsFrame;
+    private ToolbarButtonsFrame toolbarButtonsFrame;
 
     private float avatarY;
     private float avatarScale;
@@ -1417,9 +1419,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
 
             topOverlayGradient.draw(canvas);
-            bottomOverlayGradient.draw(canvas);
+//            bottomOverlayGradient.draw(canvas);
             canvas.drawRect(topOverlayRect, backgroundPaint);
-            canvas.drawRect(bottomOverlayRect, backgroundPaint);
+//            canvas.drawRect(bottomOverlayRect, backgroundPaint);
 
             int count = avatarsViewPager.getRealCount();
             selectedPosition = avatarsViewPager.getRealPosition();
@@ -3298,6 +3300,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (child == blurredView) {
                     return true;
                 }
+                toolbarButtonsFrame.setBackground(generateToolbarBlur(avatarImage.getImageReceiver().getBitmap()));
                 return super.drawChild(canvas, child, drawingTime);
             }
 
@@ -5338,7 +5341,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
         writeButton.setScaleType(ImageView.ScaleType.CENTER);
 
-        frameLayout.addView(writeButton, LayoutHelper.createFrame(60, 60, Gravity.RIGHT | Gravity.TOP, 0, 0, 16, 0));
+//        frameLayout.addView(writeButton, LayoutHelper.createFrame(60, 60, Gravity.RIGHT | Gravity.TOP, 0, 0, 16, 0));
         writeButton.setOnClickListener(v -> {
             if (writeButton.getTag() != null) {
                 return;
@@ -5528,7 +5531,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         frameLayout.addView(metaballOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        toolbarButtonsFrame = new FrameLayout(context);
+        toolbarButtonsFrame = new ToolbarButtonsFrame(context);
+        if (avatarsViewPager != null) {
+            avatarsViewPager.onFrameChanged = new ProfileGalleryView.onFrameChanged() {
+                @Override
+                public void onFrameChanged(Bitmap bitmap) {
+                    if (bitmap == null) {
+                        bitmap = avatarImage.getImageReceiver().getBitmap();
+                    }
+                    toolbarButtonsFrame.setBackground(generateToolbarBlur(bitmap));
+                }
+            };
+        }
         toolbarButtonsFrame.setBackgroundColor(Color.RED);
         frameLayout.addView(toolbarButtonsFrame,
                 LayoutHelper.createFrame(
@@ -15001,6 +15015,82 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
     }
 
+    private class ToolbarButtonsFrame extends FrameLayout {
+
+        public ToolbarButtonsFrame(@NonNull Context context) {
+            super(context);
+        }
+
+        public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+            super(context, attrs, defStyleAttr);
+        }
+    }
+
+    private static final int BLUR_STRIPE_HEIGHT = 4;
+    private boolean useNew = true;
+
+    private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar,
+                                                        int targetH,
+                                                        float blurCoverage,
+                                                        int fillColor) {
+        if (avatar == null || targetH <= 0) {
+            return null;
+        }
+
+        blurCoverage = Math.max(0f, Math.min(1f, blurCoverage));
+        int blurHeight = (int) (targetH * blurCoverage);
+        if (blurHeight <= 0) {
+            blurHeight = 1;
+        }
+
+        Bitmap stripe = Bitmap.createBitmap(
+                avatar,
+                0,
+                Math.max(0, avatar.getHeight() - BLUR_STRIPE_HEIGHT),
+                avatar.getWidth(),
+                BLUR_STRIPE_HEIGHT);
+
+        Bitmap stretchedBlur = Bitmap.createScaledBitmap(stripe, stripe.getWidth(), blurHeight, false);
+        stripe.recycle();
+
+        if (useNew) {
+            try {
+                Utilities.stackBlurBitmap2(stretchedBlur, 32);
+            } catch (Exception e) {
+                useNew = false;
+            }
+        }
+        if (!useNew) {
+            Utilities.stackBlurBitmap(stretchedBlur, 32);
+        }
+
+        Bitmap finalBitmap = Bitmap.createBitmap(stretchedBlur.getWidth(), targetH, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(finalBitmap);
+        canvas.drawBitmap(stretchedBlur, 0, 0, null);
+        stretchedBlur.recycle();
+
+        if (blurHeight < targetH) {
+            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            paint.setColor(fillColor);
+            canvas.drawRect(0, blurHeight, finalBitmap.getWidth(), targetH, paint);
+        }
+
+        canvas.drawBitmap(finalBitmap, 0, -15, null);
+
+        return new BitmapDrawable(getContext().getResources(), finalBitmap);
+    }
+
+
+    private ValueAnimator toolbarExpandAnimator;
+    private float currentToolbarExpandAnimatorValue;
+    private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar) {
+        return generateToolbarBlur(avatar, AndroidUtilities.dp(96), currentExpandAnimatorValue,
+                topView.color1);
+    }
 }
 
 

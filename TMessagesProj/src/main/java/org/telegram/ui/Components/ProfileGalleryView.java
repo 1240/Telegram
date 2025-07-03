@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -1362,6 +1363,12 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
         this.createThumbFromParent = createThumbFromParent;
     }
 
+    public interface onFrameChanged {
+        void onFrameChanged(Bitmap bitmap);
+    }
+
+    public onFrameChanged onFrameChanged;
+
     private class AvatarImageView extends BackupImageView {
 
         private final int radialProgressSize = AndroidUtilities.dp(64f);
@@ -1393,6 +1400,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
 
         @Override
         protected void onDraw(Canvas canvas) {
+            if (onFrameChanged != null) onFrameChanged.onFrameChanged(getImageReceiver().getBitmap());
             if (pinchToZoomHelper != null && pinchToZoomHelper.isInOverlayMode()) {
                 return;
             }
