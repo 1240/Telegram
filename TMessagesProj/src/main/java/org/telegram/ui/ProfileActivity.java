@@ -1219,7 +1219,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 final float diff = extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP);
                 float diffFast = MathUtils.clamp((float) Math.pow(diff, 3f), 0f, 1f);
 //                if (diffFast >= .7) {
-                    StarGiftPatterns2.resetAnchor();
+                StarGiftPatterns2.resetAnchor();
 //                }
                 if (hasEmoji && avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
@@ -4990,7 +4990,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         fallbackImage.setRoundRadius(AndroidUtilities.dp(11));
         AndroidUtilities.updateViewVisibilityAnimated(avatarContainer2, true, 1f, false);
         frameLayout.addView(avatarContainer2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
-        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP/2);
+        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP / 2);
         avatarContainer.setPivotY(0);
 
         giftsView = new ProfileGiftsView(context, currentAccount, getDialogId(), avatarContainer, avatarImage, resourcesProvider);
@@ -14890,7 +14890,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private float avatarMetaballAnimationProgress;
 
     private void updateMetaball() {
-        if (metaballOverlay == null || metaball == null || avatarContainer == null) return;
+        if (metaballOverlay == null || metaball == null || avatarContainer == null || avatarContainer.getWidth() == 0) return;
 
         final float baseAvatarR = avatarContainer.getWidth() / 2f;
         int[] coords = new int[2];
@@ -14899,10 +14899,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final float connectThreshold = metaball.getConnectThreshold();
         final float cameraExpansion = Math.max(AndroidUtilities.dp2(14) / metaball.getBaseCameraRadius(), 1f);
 
-        float avatarScaleCurrent = avatarContainer.getScaleX();
+        float avatarScaleCurrent = avatarContainer.getScaleY();
         float currentAvatarR = baseAvatarR * avatarScaleCurrent;
 
-        float centerDistance = 0;
+        float centerDistance;
         if (metaball.hasCameraTarget()) {
             float centerAvatarY = coords[1] + currentAvatarR;
             float centerCameraY = metaball.getCameraCenterYInWindow();
