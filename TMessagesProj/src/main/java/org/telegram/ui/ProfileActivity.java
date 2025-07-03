@@ -5398,7 +5398,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         expandAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationStart(Animator animation) {
-
             }
 
             @Override
@@ -14890,7 +14889,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private float avatarMetaballAnimationProgress;
 
     private void updateMetaball() {
-        if (metaballOverlay == null || metaball == null || avatarContainer == null || avatarContainer.getWidth() == 0) return;
+        if (metaballOverlay == null || metaball == null || avatarContainer == null || avatarContainer.getWidth() == 0)
+            return;
 
         final float baseAvatarR = avatarContainer.getWidth() / 2f;
         int[] coords = new int[2];
@@ -14979,7 +14979,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final float cy = coords[1] + r;
 
         metaball.update(cy, r, avatarMetaballAnimationProgress);
-        metaballOverlay.update(cy, r, 1 - (centerDistance/connectThreshold));
+        metaballOverlay.update(cy, r, 1 - (centerDistance / connectThreshold));
     }
 
     private void updateToolbarButtonsFramePosition() {
@@ -14989,7 +14989,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float toolbarBottom = ActionBar.getCurrentActionBarHeight()
                 + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                 + extraHeight;
-        toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight());
+        float v = currentExpandAnimatorValue * dp(96);
+        for (int i = 0; i < listAdapter.getItemCount(); i++) {
+            View fP = layoutManager.findViewByPosition(i);
+            if (fP != null) {
+                fP.setTranslationY(v);
+//        } else {
+//        listView.setTranslationY(v);
+            }
+        }
+        toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
     }
 
 }
