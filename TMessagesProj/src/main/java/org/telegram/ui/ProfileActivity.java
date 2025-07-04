@@ -15015,7 +15015,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
     }
 
-    private class ToolbarButtonsFrame extends FrameLayout {
+    private static class ToolbarButtonsFrame extends FrameLayout {
 
         public ToolbarButtonsFrame(@NonNull Context context) {
             super(context);
@@ -15030,65 +15030,57 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private static final int BLUR_STRIPE_HEIGHT = 4;
+    private static final int BLUR_STRIPE_HEIGHT = 20;
     private boolean useNew = true;
 
     private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar,
                                                         int targetH,
-                                                        float blurCoverage,
                                                         int fillColor) {
         if (avatar == null || targetH <= 0) {
             return null;
         }
 
-        blurCoverage = Math.max(0f, Math.min(1f, blurCoverage));
-        int blurHeight = (int) (targetH * blurCoverage);
-        if (blurHeight <= 0) {
-            blurHeight = 1;
-        }
-
+        final int stripeHeight = Math.min(BLUR_STRIPE_HEIGHT, avatar.getHeight());
         Bitmap stripe = Bitmap.createBitmap(
                 avatar,
                 0,
-                Math.max(0, avatar.getHeight() - BLUR_STRIPE_HEIGHT),
+                avatar.getHeight() - stripeHeight,
                 avatar.getWidth(),
-                BLUR_STRIPE_HEIGHT);
+                stripeHeight);
+        try {
+            if (useNew) {
+                Utilities.stackBlurBitmap2(stripe, 128);
+            } else {
+                Utilities.stackBlurBitmap(stripe, 128);
+            }
+        } catch (Exception ignore) {
+            useNew = false;
+            Utilities.stackBlurBitmap(stripe, 128);
+        }
 
-        Bitmap stretchedBlur = Bitmap.createScaledBitmap(stripe, stripe.getWidth(), blurHeight, false);
+        Bitmap result = Bitmap.createBitmap(
+                stripe.getWidth(),
+                targetH,
+                stripe.getConfig() != null ? stripe.getConfig() : Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(result);
+        Rect src = new Rect(0, 0, stripe.getWidth(), stripe.getHeight());
+        Rect dst = new Rect(0, 0, result.getWidth(), targetH);
+        canvas.drawBitmap(stripe, src, dst, null);
         stripe.recycle();
 
-        if (useNew) {
-            try {
-                Utilities.stackBlurBitmap2(stretchedBlur, 32);
-            } catch (Exception e) {
-                useNew = false;
-            }
-        }
-        if (!useNew) {
-            Utilities.stackBlurBitmap(stretchedBlur, 32);
-        }
-
-        Bitmap finalBitmap = Bitmap.createBitmap(stretchedBlur.getWidth(), targetH, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(finalBitmap);
-        canvas.drawBitmap(stretchedBlur, 0, 0, null);
-        stretchedBlur.recycle();
-
-        if (blurHeight < targetH) {
+        if (fillColor != 0) {
             Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
             paint.setColor(fillColor);
-            canvas.drawRect(0, blurHeight, finalBitmap.getWidth(), targetH, paint);
+            canvas.drawRect(0, targetH - 1, result.getWidth(), targetH, paint);
         }
 
-        canvas.drawBitmap(finalBitmap, 0, -15, null);
-
-        return new BitmapDrawable(getContext().getResources(), finalBitmap);
+        return new BitmapDrawable(getContext().getResources(), result);
     }
 
 
-    private ValueAnimator toolbarExpandAnimator;
-    private float currentToolbarExpandAnimatorValue;
     private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar) {
-        return generateToolbarBlur(avatar, AndroidUtilities.dp(96), currentExpandAnimatorValue,
+        return generateToolbarBlur(avatar, AndroidUtilities.dp(96),
                 topView.color1);
     }
 }
