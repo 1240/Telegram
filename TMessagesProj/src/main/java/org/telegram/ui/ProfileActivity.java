@@ -38,6 +38,7 @@ import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -810,7 +811,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     public static class AvatarImageView extends BackupImageView {
         public static final float EXTRA_DP = 96f;
         //        private BitmapShader tailShader;
-        private final Paint tailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private float expandProgress;
 
         private final RectF rect = new RectF();
@@ -857,10 +857,45 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             foregroundImageReceiver = new ImageReceiver(this);
             placeholderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             placeholderPaint.setColor(Color.BLACK);
-            tailPaint.setStyle(Paint.Style.FILL);
         }
 
         int radius;
+
+        private BitmapDrawable tailBlur;
+        private int lastAvatarHash;
+        private int lastTailH;
+
+        private static BitmapDrawable createTailBlur(Resources res, Bitmap avatar, int targetH) {
+            if (avatar == null || targetH <= 0) return null;
+
+            final int STRIPE_H = Math.min(avatar.getHeight(), 20);   // BLUR_STRIPE_HEIGHT
+            Bitmap stripe = Bitmap.createBitmap(
+                    avatar,
+                    0,
+                    avatar.getHeight() - STRIPE_H,
+                    avatar.getWidth(),
+                    STRIPE_H);
+
+            try {
+                Utilities.stackBlurBitmap2(stripe, 128);              // GPU-blur
+            } catch (Exception ignore) {
+                Utilities.stackBlurBitmap(stripe, 128);               // CPU fallback
+            }
+
+            Bitmap result = Bitmap.createBitmap(
+                    stripe.getWidth(),
+                    targetH,
+                    stripe.getConfig() != null ? stripe.getConfig()
+                            : Bitmap.Config.ARGB_8888);
+
+            Canvas c = new Canvas(result);
+            Rect src = new Rect(0, 0, stripe.getWidth(), stripe.getHeight());
+            Rect dst = new Rect(0, 0, result.getWidth(), targetH);
+            c.drawBitmap(stripe, src, dst, null);
+            stripe.recycle();
+
+            return new BitmapDrawable(res, result);
+        }
 
         public void setRoundRadius2(int radius) {
             this.radius = radius;
@@ -1018,8 +1053,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             float tail = getExtraTailPx();
             if (tail > 0) {
-                rect.set(0, getMeasuredWidth(), getMeasuredWidth(), getMeasuredWidth() + tail);
-                canvas.drawRect(rect, tailPaint);
+                int left = 0;
+                int top = getMeasuredWidth();
+                int right = getMeasuredWidth();
+                int bottom = top + (int) tail;
+                Bitmap bitmap = imageReceiver != null ? imageReceiver.getBitmapSafe().bitmap : null;
+                BitmapDrawable tailBlur = createTailBlur(getResources(), bitmap, (int) tail);
+                if (tailBlur != null) {
+                    tailBlur.setBounds(left, top, right, bottom);
+                    tailBlur.draw(canvas);
+                }
             }
 
             canvas.restore();
