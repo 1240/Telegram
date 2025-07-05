@@ -861,14 +861,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         int radius;
 
-        private BitmapDrawable tailBlur;
-        private int lastAvatarHash;
-        private int lastTailH;
-
         private static BitmapDrawable createTailBlur(Resources res, Bitmap avatar, int targetH) {
             if (avatar == null || targetH <= 0) return null;
 
-            final int STRIPE_H = Math.min(avatar.getHeight(), 20);   // BLUR_STRIPE_HEIGHT
+            final int STRIPE_H = Math.min(avatar.getHeight(), 20);
             Bitmap stripe = Bitmap.createBitmap(
                     avatar,
                     0,
@@ -877,9 +873,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     STRIPE_H);
 
             try {
-                Utilities.stackBlurBitmap2(stripe, 128);              // GPU-blur
+                Utilities.stackBlurBitmap2(stripe, 128);
             } catch (Exception ignore) {
-                Utilities.stackBlurBitmap(stripe, 128);               // CPU fallback
+                Utilities.stackBlurBitmap(stripe, 128);
             }
 
             Bitmap result = Bitmap.createBitmap(
@@ -899,6 +895,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         public void setRoundRadius2(int radius) {
             this.radius = radius;
+            foregroundImageReceiver.setRoundRadius(radius);
 //            setRoundRadius(radius, radius, 0, 0);
         }
 
@@ -994,12 +991,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         protected void onAttachedToWindow() {
             super.onAttachedToWindow();
             foregroundImageReceiver.onAttachedToWindow();
-        }
-
-        @Override
-        public void setRoundRadius(int value) {
-            super.setRoundRadius(value);
-            foregroundImageReceiver.setRoundRadius(value);
         }
 
         @Override
