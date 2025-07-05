@@ -15,7 +15,6 @@ import static org.telegram.messenger.ContactsController.PRIVACY_RULES_TYPE_ADDED
 import static org.telegram.messenger.LocaleController.formatPluralString;
 import static org.telegram.messenger.LocaleController.formatString;
 import static org.telegram.messenger.LocaleController.getString;
-import static org.telegram.ui.ActionBar.Theme.currentColor;
 import static org.telegram.ui.Stars.StarsIntroActivity.formatStarsAmountShort;
 import static org.telegram.ui.bots.AffiliateProgramFragment.percents;
 
@@ -1131,6 +1130,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (!animated) {
                 color1Animated.set(color1, true);
                 color2Animated.set(color2, true);
+            }
+            if (getParent() != null) {
+                ((ViewGroup) getParent()).setBackgroundColor(color1);
             }
             invalidate();
         }
@@ -3032,7 +3034,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         paddingTop = AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP);
                         paddingBottom = 0;
                     } else {
-                        paddingTop = listView.getMeasuredWidth() + AndroidUtilities.dp2(AvatarImageView.EXTRA_DP);
+                        paddingTop = listView.getMeasuredWidth();
                         paddingBottom = Math.max(0, getMeasuredHeight() - (listContentHeight + AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP) + actionBarHeight));
                     }
                     if (banFromGroup != 0) {
@@ -3059,7 +3061,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         paddingTop = AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP);
                         paddingBottom = 0;
                     } else {
-                        paddingTop = listView.getMeasuredWidth() + AndroidUtilities.dp2(AvatarImageView.EXTRA_DP);
+                        paddingTop = listView.getMeasuredWidth();
                         paddingBottom = Math.max(0, getMeasuredHeight() - (listContentHeight + AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP) + actionBarHeight));
                     }
                     if (banFromGroup != 0) {
@@ -3300,7 +3302,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (child == blurredView) {
                     return true;
                 }
-                toolbarButtonsFrame.setBackground(generateToolbarBlur(avatarImage.getImageReceiver().getBitmap()));
+                toolbarButtonsFrame.avatar = avatarImage.getImageReceiver().getBitmap();
+                toolbarButtonsFrame.invalidate();
                 return super.drawChild(canvas, child, drawingTime);
             }
 
@@ -5539,11 +5542,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (bitmap == null) {
                         bitmap = avatarImage.getImageReceiver().getBitmap();
                     }
-                    toolbarButtonsFrame.setBackground(generateToolbarBlur(bitmap));
+                    toolbarButtonsFrame.avatar = bitmap;
+                    toolbarButtonsFrame.invalidate();
                 }
             };
         }
-        toolbarButtonsFrame.setBackgroundColor(Color.RED);
         frameLayout.addView(toolbarButtonsFrame,
                 LayoutHelper.createFrame(
                         LayoutHelper.MATCH_PARENT,
@@ -15015,18 +15018,56 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
     }
 
-    private static class ToolbarButtonsFrame extends FrameLayout {
+    private class ToolbarButtonsFrame extends FrameLayout {
+
+        public Bitmap avatar;
+        private final int targetH = dp(96);
+        private final Rect rect1 = new Rect();
+        private final Rect rect2 = new Rect();
 
         public ToolbarButtonsFrame(@NonNull Context context) {
             super(context);
+            setWillNotDraw(false);
         }
 
         public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs) {
             super(context, attrs);
+            setWillNotDraw(false);
         }
 
         public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
             super(context, attrs, defStyleAttr);
+            setWillNotDraw(false);
+        }
+
+        @Override
+        protected void onDraw(@NonNull Canvas canvas) {
+            super.onDraw(canvas);
+            if (currentExpandAnimatorValue >= 1 && avatar != null) {
+                Bitmap stripe = Bitmap.createBitmap(
+                        avatar,
+                        0,
+                        avatar.getHeight() - BLUR_STRIPE_HEIGHT,
+                        avatar.getWidth(),
+                        BLUR_STRIPE_HEIGHT);
+                try {
+                    if (useNew) {
+                        Utilities.stackBlurBitmap2(stripe, 128);
+                    } else {
+                        Utilities.stackBlurBitmap(stripe, 128);
+                    }
+                } catch (Exception ignore) {
+                    useNew = false;
+                    Utilities.stackBlurBitmap(stripe, 128);
+                }
+
+                rect1.set(0, 0, stripe.getWidth(), stripe.getHeight());
+                rect2.set(0, 0, getWidth(), targetH);
+                canvas.drawBitmap(stripe, rect1, rect2, null);
+                stripe.recycle();
+            } else {
+//                canvas.drawColor(topView.color1);
+            }
         }
     }
 
@@ -15034,9 +15075,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private boolean useNew = true;
 
     private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar,
-                                                        int targetH,
-                                                        int fillColor) {
+                                                         int targetH) {
         if (avatar == null || targetH <= 0) {
+            return null;
+        }
+        if (currentExpandAnimatorValue <= 0) {
             return null;
         }
 
@@ -15069,19 +15112,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         canvas.drawBitmap(stripe, src, dst, null);
         stripe.recycle();
 
-        if (fillColor != 0) {
-            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            paint.setColor(fillColor);
-            canvas.drawRect(0, targetH - 1, result.getWidth(), targetH, paint);
-        }
-
         return new BitmapDrawable(getContext().getResources(), result);
     }
 
 
     private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar) {
-        return generateToolbarBlur(avatar, AndroidUtilities.dp(96),
-                topView.color1);
+        return generateToolbarBlur(avatar, AndroidUtilities.dp(96));
     }
 }
 
