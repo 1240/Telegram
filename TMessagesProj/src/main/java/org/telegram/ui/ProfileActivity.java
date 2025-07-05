@@ -808,7 +808,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     public static class AvatarImageView extends BackupImageView {
-        public static final float EXTRA_DP = 0f;
+        public static final float EXTRA_DP = 96f;
         //        private BitmapShader tailShader;
         private final Paint tailPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private float expandProgress;
@@ -831,6 +831,23 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private boolean hasStories;
         private float progressToInsets = 1f;
 
+        private final Path clipPath = new Path();
+        private final float[] clipRadii = new float[8];
+        private void rebuildClipPath() {
+            clipPath.reset();
+            clipRadii[0] = clipRadii[1] = radius;      // top-left
+            clipRadii[2] = clipRadii[3] = radius;      // top-right
+            clipRadii[4] = clipRadii[5] = radius;  // bottom-right
+            clipRadii[6] = clipRadii[7] = radius;  // bottom-left
+            clipPath.addRoundRect(0f, 0f, getMeasuredWidth(), getMeasuredHeight(), clipRadii, Path.Direction.CW);
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            rebuildClipPath();
+        }
+
         public void setAvatarsViewPager(ProfileGalleryView avatarsViewPager) {
             this.avatarsViewPager = avatarsViewPager;
         }
@@ -840,9 +857,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             foregroundImageReceiver = new ImageReceiver(this);
             placeholderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             placeholderPaint.setColor(Color.BLACK);
-            tailPaint.setColor(Color.RED);
-            tailPaint.setAlpha(255);
             tailPaint.setStyle(Paint.Style.FILL);
+        }
+
+        int radius;
+
+        public void setRoundRadius2(int radius) {
+            this.radius = radius;
+//            setRoundRadius(radius, radius, 0, 0);
         }
 
         public void setAnimateFromImageReceiver(ImageReceiver imageReceiver) {
@@ -947,11 +969,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         protected void onDraw(Canvas canvas) {
-            float tail = getExtraTailPx();
-            float avatarHeight = getMeasuredHeight() - tail;
+            float avatarHeight = getMeasuredWidth();
             ImageReceiver imageReceiver = animatedEmojiDrawable != null ? animatedEmojiDrawable.getImageReceiver() : this.imageReceiver;
             canvas.save();
             canvas.scale(bounceScale, bounceScale, getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
+            canvas.save();
+            canvas.clipPath(clipPath);
             float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
             inset *= (1f - progressToExpand);
             inset *= progressToInsets * (1f - foregroundAlpha);
@@ -989,19 +1012,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 } else {
                     rect.set(0f, 0f, getMeasuredWidth(), avatarHeight);
                     placeholderPaint.setAlpha((int) (alpha * foregroundAlpha * 255f));
-                    final int radius = foregroundImageReceiver.getRoundRadius()[0];
                     canvas.drawRoundRect(rect, radius, radius, placeholderPaint);
                 }
             }
 
+            float tail = getExtraTailPx();
             if (tail > 0) {
-                float left = 0f, top = getMeasuredHeight() - tail;
-                rect.set(left, top, getMeasuredWidth(), getMeasuredHeight());
-                int[] r = getRoundRadius();
-                float radius = r != null ? r[0] : 0f;
-                canvas.drawRoundRect(rect, radius, radius, tailPaint);
+                rect.set(0, getMeasuredWidth(), getMeasuredWidth(), getMeasuredWidth() + tail);
+                canvas.drawRect(rect, tailPaint);
             }
 
+            canvas.restore();
             canvas.restore();
         }
 
@@ -5028,7 +5049,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         };
         avatarImage.getImageReceiver().setAllowDecodeSingleFrame(true);
-        avatarImage.setRoundRadius(getSmallAvatarRoundRadius());
+        avatarImage.setRoundRadius2(getSmallAvatarRoundRadius());
 //        avatarImage.setPivotX(0);
 //        avatarImage.setPivotY(0);
         avatarContainer.addView(avatarImage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
@@ -5590,7 +5611,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateAvatarRoundRadius() {
-        avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, currentExpandAnimatorValue));
+        avatarImage.setRoundRadius2((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, currentExpandAnimatorValue));
     }
 
     private void createFloatingActionButton(Context context) {
@@ -5789,7 +5810,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 //        avatarContainer.setTranslationX(AndroidUtilities.lerp(avatarX, 0f, value));
         avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avatarY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, value));
         updateMetaball();
-        avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
+        avatarImage.setRoundRadius2((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, value));
         if (storyView != null) {
             storyView.setExpandProgress(value);
         }
@@ -5889,7 +5910,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) avatarContainer.getLayoutParams();
         params.width = (int) AndroidUtilities.lerp(AndroidUtilities.dpf2(AVATAR_BASE_SIZE_DP), listView.getMeasuredWidth() / avatarScale, value);
-        params.height = (int) (AndroidUtilities.lerp(AndroidUtilities.dpf2(AVATAR_BASE_SIZE_DP), (extraHeight + newTop) / avatarScale, value) + avatarImage.getExtraTailPx());
+        params.height = (int) (AndroidUtilities.lerp(AndroidUtilities.dpf2(AVATAR_BASE_SIZE_DP), (extraHeight + newTop + avatarImage.getExtraTailPx()) / avatarScale, value));
 //        params.leftMargin = (int) AndroidUtilities.lerp(AndroidUtilities.dpf2(64f), 0f, value);
         avatarContainer.requestLayout();
 
@@ -7641,7 +7662,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     giftsView.setExpandProgress(1f);
                 }
 
-                avatarImage.setRoundRadius((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, avatarAnimationProgress));
+                avatarImage.setRoundRadius2((int) AndroidUtilities.lerp(getSmallAvatarRoundRadius(), 0f, avatarAnimationProgress));
 //                avatarContainer.setTranslationX(AndroidUtilities.lerp(avX, 0, avatarAnimationProgress));
                 avatarContainer.setTranslationY(AndroidUtilities.lerp((float) Math.ceil(avY - AndroidUtilities.dp(AVATAR_BASE_Y_DIFF)), 0f, avatarAnimationProgress));
                 updateMetaball();
