@@ -76,7 +76,6 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
-import android.util.AttributeSet;
 import android.util.Property;
 import android.util.SparseArray;
 import android.util.SparseIntArray;
@@ -335,6 +334,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private SimpleTextView[] onlineTextView = new SimpleTextView[4];
     private AudioPlayerAlert.ClippingTextViewSwitcher mediaCounterTextView;
     private RLottieImageView writeButton;
+    private ToolbarButtonsFrameButton writeButton2;
     private AnimatorSet writeButtonAnimation;
     private AnimatorSet qrItemAnimation;
     private Drawable lockIconDrawable;
@@ -415,6 +415,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private ActionBarMenuItem editItem;
     private ActionBarMenuItem otherItem;
     private ActionBarMenuItem searchItem;
+    private ToolbarButtonsFrameButton callItemButton;
+    private ToolbarButtonsFrameButton videoCallItemButton;
+    private ToolbarButtonsFrameButton searchItemButton;
     private ActionBarMenuSubItem editColorItem;
     private ActionBarMenuSubItem linkItem;
     private ActionBarMenuSubItem setUsernameItem;
@@ -833,6 +836,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         private final Path clipPath = new Path();
         private final float[] clipRadii = new float[8];
+
         private void rebuildClipPath() {
             clipPath.reset();
             clipRadii[0] = clipRadii[1] = radius;      // top-left
@@ -3678,6 +3682,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         };
         sharedMediaLayout.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, RecyclerView.LayoutParams.MATCH_PARENT));
         ActionBarMenu menu = actionBar.createMenu();
+        toolbarButtonsFrame = new ToolbarButtonsFrame(context);
 
         if (userId == getUserConfig().clientUserId && !myProfile) {
             qrItem = menu.addItem(qr_button, R.drawable.msg_qr_mini, getResourceProvider());
@@ -3723,16 +3728,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         videoCallItem = menu.addItem(video_call_item, R.drawable.profile_video);
         videoCallItem.setContentDescription(LocaleController.getString(R.string.VideoCall));
+        videoCallItemButton = toolbarButtonsFrame.addButton(R.raw.r1_video, LocaleController.getString(R.string.VideoCall));
         if (chatId != 0) {
             callItem = menu.addItem(call_item, R.drawable.msg_voicechat2);
+            String t;
             if (ChatObject.isChannelOrGiga(currentChat)) {
-                callItem.setContentDescription(LocaleController.getString(R.string.VoipChannelVoiceChat));
+                t = LocaleController.getString(R.string.VoipChannelVoiceChat);
             } else {
-                callItem.setContentDescription(LocaleController.getString(R.string.VoipGroupVoiceChat));
+                t = LocaleController.getString(R.string.VoipGroupVoiceChat);
             }
+            callItemButton = toolbarButtonsFrame.addButton(R.raw.r1_live_stream, t);
         } else {
             callItem = menu.addItem(call_item, R.drawable.ic_call);
             callItem.setContentDescription(LocaleController.getString(R.string.Call));
+            callItemButton = toolbarButtonsFrame.addButton(R.raw.r1_call, LocaleController.getString(R.string.Call));
         }
         if (myProfile) {
             editItem = menu.addItem(edit_profile, R.drawable.group_edit_profile);
@@ -5392,10 +5401,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             } else {
                 writeButton.setImageResource(R.drawable.profile_newmsg);
                 writeButton.setContentDescription(LocaleController.getString(R.string.AccDescrOpenChat));
+                writeButton2 = toolbarButtonsFrame.addButton(R.raw.r1_message, LocaleController.getString(R.string.AccDescrOpenChat));
             }
         } else {
             writeButton.setImageResource(R.drawable.profile_discuss);
             writeButton.setContentDescription(LocaleController.getString(R.string.ViewDiscussion));
+            writeButton2 = toolbarButtonsFrame.addButton(R.raw.r1_message, LocaleController.getString(R.string.AccDescrOpenChat));
         }
         writeButton.setScaleType(ImageView.ScaleType.CENTER);
 
@@ -5404,6 +5415,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (writeButton.getTag() != null) {
                 return;
             }
+            onWriteButtonClick();
+        });
+        writeButton2.setOnClickListener(v -> {
             onWriteButtonClick();
         });
         needLayout(false);
@@ -5589,7 +5603,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         frameLayout.addView(metaballOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        toolbarButtonsFrame = new ToolbarButtonsFrame(context);
         if (avatarsViewPager != null) {
             avatarsViewPager.onFrameChanged = new ProfileGalleryView.onFrameChanged() {
                 @Override
@@ -15073,7 +15086,41 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
     }
 
+
+    private class ToolbarButtonsFrameButton {
+        int icon;
+        String text;
+        private View.OnClickListener listener;
+        /* drawing helpers */
+        android.graphics.RectF rect = new android.graphics.RectF();
+        Bitmap bitmap;
+
+        public ToolbarButtonsFrameButton(int icon, String text) {
+            this.icon = icon;
+            this.text = text;
+            bitmap = SvgHelper.getBitmap(icon, dp(24), dp(24), Color.WHITE);
+        }
+
+        public void setOnClickListener(View.OnClickListener listener) {
+            this.listener = listener;
+        }
+    }
+
     private class ToolbarButtonsFrame extends FrameLayout {
+
+        private ArrayList<ToolbarButtonsFrameButton> buttons = new ArrayList<>();
+        private final android.graphics.Paint buttonPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Paint textPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.RectF tmpRectF = new android.graphics.RectF();
+        private int pressedIndex = -1;
+
+        public ToolbarButtonsFrameButton addButton(int icon, String text) {
+            ToolbarButtonsFrameButton button = new ToolbarButtonsFrameButton(icon, text);
+            buttons.add(button);
+            updateButtonLayouts();
+            invalidate();
+            return button;
+        }
 
         public Bitmap avatar;
         private final int targetH = dp(96);
@@ -15083,16 +15130,92 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         public ToolbarButtonsFrame(@NonNull Context context) {
             super(context);
             setWillNotDraw(false);
+            setClickable(true);
+            buttonPaint.setColor(0x33000000);
+            textPaint.setColor(android.graphics.Color.WHITE);
+            textPaint.setTextAlign(android.graphics.Paint.Align.CENTER);
+            textPaint.setTextSize(dp(14));
+            textPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         }
 
-        public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs) {
-            super(context, attrs);
-            setWillNotDraw(false);
+        private void updateButtonLayouts() {
+            final int count = buttons.size();
+            if (count == 0) return;
+
+            final int w = getWidth();
+            final int h = getHeight();
+            if (w == 0 || h == 0) return;
+
+            final float hMargin = dp(12);   // left / right margin
+            final float gap = dp(7);        // spacing between buttons
+            final float buttonH = dp(80);   // fixed button height
+
+            // total width available for buttons after margins & gaps
+            final float totalButtonsWidth = w - 2f * hMargin - gap * Math.max(0, count - 1);
+            if (totalButtonsWidth <= 0) return;
+
+            final float buttonW = totalButtonsWidth / count;
+
+            final float top = (h - buttonH) / 2f;
+            final float bottom = top + buttonH;
+
+            for (int i = 0; i < count; i++) {
+                float l = hMargin + i * (buttonW + gap);
+                float r = l + buttonW;
+                buttons.get(i).rect.set(l, top, r, bottom);
+            }
         }
 
-        public ToolbarButtonsFrame(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
-            super(context, attrs, defStyleAttr);
-            setWillNotDraw(false);
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            super.onSizeChanged(w, h, oldw, oldh);
+            updateButtonLayouts();
+        }
+
+        @Override
+        public boolean onTouchEvent(android.view.MotionEvent event) {
+            if (buttons.isEmpty()) {
+                return super.onTouchEvent(event);
+            }
+            float x = event.getX();
+            float y = event.getY();
+
+            switch (event.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN: {
+                    for (int i = 0; i < buttons.size(); i++) {
+                        if (buttons.get(i).rect.contains(x, y)) {
+                            pressedIndex = i;
+                            invalidate();
+                            return true;
+                        }
+                    }
+                    break;
+                }
+                case android.view.MotionEvent.ACTION_MOVE: {
+                    if (pressedIndex != -1 && !buttons.get(pressedIndex).rect.contains(x, y)) {
+                        pressedIndex = -1;
+                        invalidate();
+                    }
+                    break;
+                }
+                case android.view.MotionEvent.ACTION_UP: {
+                    if (pressedIndex != -1 && buttons.get(pressedIndex).rect.contains(x, y)) {
+                        ToolbarButtonsFrameButton btn = buttons.get(pressedIndex);
+                        if (btn.listener != null) {
+                            btn.listener.onClick(this);
+                        }
+                    }
+                    pressedIndex = -1;
+                    invalidate();
+                    break;
+                }
+                case android.view.MotionEvent.ACTION_CANCEL: {
+                    pressedIndex = -1;
+                    invalidate();
+                    break;
+                }
+            }
+            return super.onTouchEvent(event);
         }
 
         @Override
@@ -15122,6 +15245,43 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 stripe.recycle();
             } else {
 //                canvas.drawColor(topView.color1);
+            }
+            // ----- draw custom buttons -----
+            final int count = buttons.size();
+            if (count > 0) {
+                for (int i = 0; i < count; i++) {
+                    ToolbarButtonsFrameButton b = buttons.get(i);
+                    tmpRectF.set(b.rect);
+
+                    canvas.save();
+                    float scale = (i == pressedIndex) ? 1.08f : 1f;
+                    canvas.scale(scale, scale, tmpRectF.centerX(), tmpRectF.centerY());
+
+                    // button background
+                    canvas.drawRoundRect(tmpRectF, dp(10), dp(10), buttonPaint);
+
+                    // icon
+                    if (b.bitmap != null) {
+                        int iconSize = dp(28);
+                        int iconLeft = (int) (tmpRectF.centerX() - iconSize / 2f);
+                        int iconTop  = (int) (tmpRectF.top + dp(12));
+
+                        android.graphics.Rect dstRect = new android.graphics.Rect(
+                                iconLeft,
+                                iconTop,
+                                iconLeft + iconSize,
+                                iconTop + iconSize
+                        );
+                        canvas.drawBitmap(b.bitmap, null, dstRect, null);
+                    }
+
+                    // text
+                    android.graphics.Paint.FontMetrics fm = textPaint.getFontMetrics();
+                    float txtY = tmpRectF.bottom - dp(12) - fm.descent;
+                    canvas.drawText(b.text, tmpRectF.centerX(), txtY, textPaint);
+
+                    canvas.restore();
+                }
             }
         }
     }
