@@ -5698,6 +5698,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         LayoutHelper.MATCH_PARENT,
                         96,
                         Gravity.CENTER_HORIZONTAL));
+        toolbarButtonsFrame.setPivotY(toolbarButtonsFrame.targetH);
         toolbarButtonsFrame.post(this::updateToolbarButtonsFramePosition);
         return fragmentView;
     }
@@ -7521,6 +7522,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void needLayout(boolean animated) {
+        float actionBarBottom = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
+        int[] coords = new int[2];
+        toolbarButtonsFrame.getLocationInWindow(coords);
+//        float toolbarButtonsFrameBottom = coords[1]+toolbarButtonsFrame.targetH;
+        float toolbarButtonsFrameBottom = ActionBar.getCurrentActionBarHeight()
+                + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
+                + extraHeight;
+        float pp = Math.min(1f, (toolbarButtonsFrameBottom - actionBarBottom - dp(17)) / toolbarButtonsFrame.targetH);
+        toolbarButtonsFrame.setScaleY(pp);
+        toolbarButtonsFrame.setAlpha(pp);
         final int newTop = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
 
         FrameLayout.LayoutParams layoutParams;
@@ -7568,7 +7579,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                         ObjectAnimator.ofFloat(writeButton, View.SCALE_Y, 1.0f),
                                         ObjectAnimator.ofFloat(writeButton, View.ALPHA, 1.0f)
                                 );
-                                toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, true);
+//                                toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, true);
                             } else {
                                 writeButtonAnimation.setInterpolator(new AccelerateInterpolator());
                                 writeButtonAnimation.playTogether(
@@ -7576,7 +7587,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                         ObjectAnimator.ofFloat(writeButton, View.SCALE_Y, 0.2f),
                                         ObjectAnimator.ofFloat(writeButton, View.ALPHA, 0.0f)
                                 );
-                                toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, false);
+//                                toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, false);
                             }
                             writeButtonAnimation.setDuration(150);
                             writeButtonAnimation.addListener(new AnimatorListenerAdapter() {
@@ -15282,6 +15293,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private final int targetH = dp(96);
         private final Rect rect1 = new Rect();
         private final Rect rect2 = new Rect();
+        private float scaleY = 1f;
+
+        @Override
+        public void setScaleY(float scaleY) {
+            //super.setScaleY(scaleY);
+            this.scaleY = scaleY;
+        }
 
         public ToolbarButtonsFrame(@NonNull Context context, int... icons) {
             super(context);
@@ -15291,7 +15309,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             buttonPaint.setColor(0x33000000);
             textPaint.setColor(android.graphics.Color.WHITE);
             textPaint.setTextAlign(android.graphics.Paint.Align.CENTER);
-            textPaint.setTextSize(dp(14));
             textPaint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
 
             if (icons != null && icons.length > 0) {
@@ -15462,7 +15479,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 for (int i = 0; i < count; i++) {
                     ToolbarButtonsFrameButton b = buttons.get(i);
                     if (!b.visible) continue;
-                    tmpRectF.set(b.rect);
+                    tmpRectF.set(b.rect.left, b.rect.bottom- b.rect.height()*scaleY, b.rect.right, b.rect.bottom);
 
                     canvas.save();
                     float scale = (i == pressedIndex) ? 1.08f : 1f;
@@ -15473,7 +15490,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                     // icon
                     if (b.bitmap != null) {
-                        int iconSize = dp(28);
+                        int iconSize = (int) (dp(28) * scaleY);
                         int iconLeft = (int) (tmpRectF.centerX() - iconSize / 2f);
                         int iconTop = (int) (tmpRectF.top + dp(12));
 
@@ -15488,6 +15505,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                     // text
                     android.graphics.Paint.FontMetrics fm = textPaint.getFontMetrics();
+                    textPaint.setTextSize(dp(14) * scaleY);
                     float txtY = tmpRectF.bottom - dp(12) - fm.descent;
                     canvas.drawText(b.text, tmpRectF.centerX(), txtY, textPaint);
 
