@@ -11031,7 +11031,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                     if (!BuildVars.IS_BILLING_UNAVAILABLE && !getMessagesController().premiumPurchaseBlocked()) {
                         StarsController.getInstance(currentAccount).loadStarGifts();
-                        if (toolbarButtonsFrame.addButton(R.raw.r1_gift, LocaleController.getString(R.string.ProfileSendAGiftToChannel), gift_premium) == null) {
+                        if (toolbarButtonsFrame.addButton(R.raw.r1_gift, LocaleController.getString(R.string.BoostGift), gift_premium) == null) {
                             otherItem.addSubItem(gift_premium, R.drawable.msg_gift_premium, LocaleController.getString(R.string.ProfileSendAGiftToChannel));
                             otherItem.setSubItemShown(gift_premium, chatInfo != null && chatInfo.stargifts_available);
                         } else {
@@ -15475,17 +15475,20 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             // ----- draw custom buttons -----
             final int count = buttons.size();
+            float k = .5f;
+            float a = Math.max(0f, (targetH * scaleY - targetH * k) / (targetH - targetH * k));
+            textPaint.setAlpha((int) (255 * a));
+
             if (count > 0) {
                 for (int i = 0; i < count; i++) {
                     ToolbarButtonsFrameButton b = buttons.get(i);
                     if (!b.visible) continue;
-                    tmpRectF.set(b.rect.left, b.rect.bottom- b.rect.height()*scaleY, b.rect.right, b.rect.bottom);
+                    tmpRectF.set(b.rect.left, b.rect.bottom - b.rect.height() * scaleY, b.rect.right, b.rect.bottom);
 
                     canvas.save();
                     float scale = (i == pressedIndex) ? 1.08f : 1f;
                     canvas.scale(scale, scale, tmpRectF.centerX(), tmpRectF.centerY());
 
-                    // button background
                     canvas.drawRoundRect(tmpRectF, dp(10), dp(10), buttonPaint);
 
                     // icon
@@ -15500,7 +15503,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 iconLeft + iconSize,
                                 iconTop + iconSize
                         );
-                        canvas.drawBitmap(b.bitmap, null, dstRect, null);
+                        canvas.drawBitmap(b.bitmap, null, dstRect, textPaint);
                     }
 
                     // text
