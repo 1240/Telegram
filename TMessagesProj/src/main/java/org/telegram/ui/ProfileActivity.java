@@ -52,6 +52,7 @@ import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -323,7 +324,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             PHONE_OPTION_TELEGRAM_CALL = 2,
             PHONE_OPTION_TELEGRAM_VIDEO_CALL = 3;
 
-    private static final int BLUR_STRIPE_HEIGHT = 20;
+    public Bitmap toolbarBlur;
+    private static final int BLUR_STRIPE_HEIGHT = 5;
     private RecyclerListView listView;
     private RecyclerListView searchListView;
     private LinearLayoutManager layoutManager;
@@ -487,6 +489,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private AvatarMetaball metaball;
     private AvatarMetaballOverlay metaballOverlay;
     private ToolbarButtonsFrame toolbarButtonsFrame;
+    private ToolbarButtonsFrameFade toolbarButtonsFrameFade;
 
     private float avatarY;
     private float avatarScale;
@@ -2381,6 +2384,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             resourcesProvider = lastFragment.getResourceProvider();
         }
         toolbarButtonsFrame = new ToolbarButtonsFrame(context);
+        toolbarButtonsFrameFade = new ToolbarButtonsFrameFade(context);
         searchTransitionOffset = 0;
         searchTransitionProgress = 1f;
         searchMode = false;
@@ -5287,6 +5291,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarsViewPagerIndicatorView = new PagerIndicatorView(context);
         avatarContainer2.addView(avatarsViewPagerIndicatorView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
+        avatarContainer2.addView(toolbarButtonsFrameFade,
+                LayoutHelper.createFrame(
+                        LayoutHelper.MATCH_PARENT,
+                        96,
+                        Gravity.CENTER_HORIZONTAL));
+
         frameLayout.addView(actionBar);
 
         float rightMargin = (54 + ((callItemVisible && userId != 0) ? 54 : 0));
@@ -5694,8 +5704,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         LayoutHelper.MATCH_PARENT,
                         96,
                         Gravity.CENTER_HORIZONTAL));
+
         toolbarButtonsFrame.setPivotY(toolbarButtonsFrame.targetH);
         toolbarButtonsFrame.post(this::updateToolbarButtonsFramePosition);
+
+//        frameLayout.addView(toolbarButtonsFrameFade,
+//                LayoutHelper.createFrame(
+//                        LayoutHelper.MATCH_PARENT,
+//                        96,
+//                        Gravity.CENTER_HORIZONTAL));
         return fragmentView;
     }
 
@@ -7528,6 +7545,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float pp = Math.min(1f, (toolbarButtonsFrameBottom - actionBarBottom - dp(17)) / toolbarButtonsFrame.targetH);
         toolbarButtonsFrame.setScaleY(pp);
         toolbarButtonsFrame.setAlpha(pp);
+        toolbarButtonsFrame.invalidate();
         final int newTop = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
 
         FrameLayout.LayoutParams layoutParams;
@@ -15257,7 +15275,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void updateToolbarButtonsFramePosition() {
-        if (toolbarButtonsFrame == null) {
+        if (toolbarButtonsFrame == null || toolbarButtonsFrameFade == null) {
             return;
         }
         float toolbarBottom = ActionBar.getCurrentActionBarHeight()
@@ -15273,6 +15291,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         }
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
+        toolbarButtonsFrameFade.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() - toolbarButtonsFrameFade.getHeight() + v);
     }
 
 
@@ -15299,6 +15318,47 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     public interface ToolbarButtonClick {
         void onClick(View view, int x, int y);
+    }
+
+    private class ToolbarButtonsFrameFade extends FrameLayout {
+
+        public ToolbarButtonsFrameFade(@NonNull Context context) {
+            super(context);
+            setWillNotDraw(false);
+            fadePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
+        }
+
+        private final int targetH = dp(96);
+        private final Rect rect1 = new Rect();
+        private final RectF rect2 = new RectF();
+        private float scaleY = 1f;
+
+        private final Paint fadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        @Override
+        public void setScaleY(float scaleY) {
+            //super.setScaleY(scaleY);
+            this.scaleY = scaleY;
+        }
+
+        @Override
+        protected void onDraw(@NonNull Canvas canvas) {
+            super.onDraw(canvas);
+            if (currentExpandAnimatorValue >= 1 && toolbarBlur != null) {
+                rect1.set(0, 0, toolbarBlur.getWidth(), toolbarBlur.getHeight());
+                rect2.set(0, 0, getWidth(), targetH);
+                int save = canvas.saveLayer(rect2, null);
+                canvas.drawBitmap(toolbarBlur, rect1, rect2, null);
+                fadePaint.setShader(new LinearGradient(
+                        0, 0,
+                        0, rect2.height(),
+                        new int[] { 0x00000000, 0xFF000000, 0xFF000000 },
+                        new float[] { 0f, 0.9f, 1f },
+                        Shader.TileMode.CLAMP));
+                canvas.drawRect(rect2, fadePaint);
+                canvas.restoreToCount(save);
+            }
+        }
     }
 
     private class ToolbarButtonsFrame extends FrameLayout {
@@ -15328,7 +15388,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             return button;
         }
 
-        public Bitmap avatar;
         private final int targetH = dp(96);
         private final Rect rect1 = new Rect();
         private final Rect rect2 = new Rect();
@@ -15487,28 +15546,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         @Override
         protected void onDraw(@NonNull Canvas canvas) {
             super.onDraw(canvas);
-            if (currentExpandAnimatorValue >= 1 && avatar != null) {
-                Bitmap stripe = Bitmap.createBitmap(
-                        avatar,
-                        0,
-                        avatar.getHeight() - BLUR_STRIPE_HEIGHT,
-                        avatar.getWidth(),
-                        BLUR_STRIPE_HEIGHT);
-                try {
-                    if (useNew) {
-                        Utilities.stackBlurBitmap2(stripe, 128);
-                    } else {
-                        Utilities.stackBlurBitmap(stripe, 128);
-                    }
-                } catch (Exception ignore) {
-                    useNew = false;
-                    Utilities.stackBlurBitmap(stripe, 128);
-                }
+            if (currentExpandAnimatorValue >= 1 && toolbarBlur != null) {
+//                Bitmap stripe = Bitmap.createBitmap(
+//                        toolbarBlur,
+//                        0,
+//                        toolbarBlur.getHeight(),
+//                        toolbarBlur.getWidth(),
+//                        BLUR_STRIPE_HEIGHT);
 
-                rect1.set(0, 0, stripe.getWidth(), stripe.getHeight());
+                rect1.set(0, 0, toolbarBlur.getWidth(), toolbarBlur.getHeight());
                 rect2.set(0, 0, getWidth(), targetH);
-                canvas.drawBitmap(stripe, rect1, rect2, null);
-                stripe.recycle();
+                canvas.drawBitmap(toolbarBlur, rect1, rect2, null);
+//                stripe.recycle();
             } else {
 //                canvas.drawColor(topView.color1);
             }
@@ -15698,12 +15747,23 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void drawAvatarVP() {
-        if (avatarsViewPager.getWidth() > 0) {
+        if (avatarsViewPager.getWidth() > 0 && currentExpandAnimatorValue >= 1) {
             Bitmap stripBitmap = Bitmap.createBitmap(avatarsViewPager.getWidth(), BLUR_STRIPE_HEIGHT, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(stripBitmap);
-            c.translate(0, -(avatarsViewPager.getWidth() - BLUR_STRIPE_HEIGHT));      // рисуем только низ
+            c.translate(0, -(avatarsViewPager.getWidth() - BLUR_STRIPE_HEIGHT));
             listView.drawChild(c, avatarsViewPager, 0);
-            toolbarButtonsFrame.avatar = stripBitmap;
+            toolbarBlur = stripBitmap;
+            try {
+                if (useNew) {
+                    Utilities.stackBlurBitmap2(toolbarBlur, 128);
+                } else {
+                    Utilities.stackBlurBitmap(toolbarBlur, 128);
+                }
+            } catch (Exception ignore) {
+                useNew = false;
+                Utilities.stackBlurBitmap(toolbarBlur, 128);
+            }
+            toolbarButtonsFrameFade.invalidate();
             toolbarButtonsFrame.invalidate();
         }
     }
