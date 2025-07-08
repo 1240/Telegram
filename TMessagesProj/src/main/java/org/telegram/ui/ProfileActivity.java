@@ -1008,12 +1008,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
 
-            float tail = getExtraTailPx();
+            float scale = ((FrameLayout)getParent()).getScaleY();
+            float tail = getExtraTailPx() / scale;
             if (tail > 0) {
                 int left = 0;
                 int top = getMeasuredWidth();
                 int right = getMeasuredWidth();
-                int bottom = top + (int) tail;
+                int bottom = top + (int)tail;
                 Bitmap bitmap = imageReceiver != null ? imageReceiver.getBitmapSafe().bitmap : null;
                 if (bitmap != null) {
                     blurBottomBitmap(getBottomBitmap(bitmap));
