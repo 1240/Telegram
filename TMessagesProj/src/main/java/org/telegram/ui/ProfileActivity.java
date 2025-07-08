@@ -323,6 +323,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             PHONE_OPTION_TELEGRAM_CALL = 2,
             PHONE_OPTION_TELEGRAM_VIDEO_CALL = 3;
 
+    private static final int BLUR_STRIPE_HEIGHT = 20;
     private RecyclerListView listView;
     private RecyclerListView searchListView;
     private LinearLayoutManager layoutManager;
@@ -1873,6 +1874,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                 @Override
                 public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                    drawAvatarVP();
                 }
 
                 @Override
@@ -3369,8 +3371,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (child == blurredView) {
                     return true;
                 }
-                toolbarButtonsFrame.avatar = avatarImage.getImageReceiver().getBitmap();
-                toolbarButtonsFrame.invalidate();
                 return super.drawChild(canvas, child, drawingTime);
             }
 
@@ -5684,12 +5684,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         if (avatarsViewPager != null) {
             avatarsViewPager.onFrameChanged = new ProfileGalleryView.onFrameChanged() {
                 @Override
-                public void onFrameChanged(Bitmap bitmap) {
-                    if (bitmap == null) {
-                        bitmap = avatarImage.getImageReceiver().getBitmap();
-                    }
-                    toolbarButtonsFrame.avatar = bitmap;
-                    toolbarButtonsFrame.invalidate();
+                public void onFrameChanged(int pos, Bitmap bitmap) {
+                    drawAvatarVP();
                 }
             };
         }
@@ -15579,7 +15575,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private static final int BLUR_STRIPE_HEIGHT = 20;
     private boolean useNew = true;
 
     private @Nullable BitmapDrawable generateToolbarBlur(@Nullable Bitmap avatar,
@@ -15700,6 +15695,17 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             y += v.getY() + v.getPaddingTop();
         }
         chatNotificationsPopupWrapper.showAsOptions(ProfileActivity.this, view, x, y);
+    }
+
+    private void drawAvatarVP() {
+        if (avatarsViewPager.getWidth() > 0) {
+            Bitmap stripBitmap = Bitmap.createBitmap(avatarsViewPager.getWidth(), BLUR_STRIPE_HEIGHT, Bitmap.Config.ARGB_8888);
+            Canvas c = new Canvas(stripBitmap);
+            c.translate(0, -(avatarsViewPager.getWidth() - BLUR_STRIPE_HEIGHT));      // рисуем только низ
+            listView.drawChild(c, avatarsViewPager, 0);
+            toolbarButtonsFrame.avatar = stripBitmap;
+            toolbarButtonsFrame.invalidate();
+        }
     }
 }
 

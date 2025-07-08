@@ -1364,7 +1364,7 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
     }
 
     public interface onFrameChanged {
-        void onFrameChanged(Bitmap bitmap);
+        void onFrameChanged(int pos, Bitmap bitmap);
     }
 
     public onFrameChanged onFrameChanged;
@@ -1398,9 +1398,17 @@ public class ProfileGalleryView extends CircularViewPager implements Notificatio
             }
         }
 
+        private boolean capturingBottomStrip;
+
         @Override
         protected void onDraw(Canvas canvas) {
-            if (onFrameChanged != null) onFrameChanged.onFrameChanged(getImageReceiver().getBitmap());
+            if (onFrameChanged != null) {
+                if (!capturingBottomStrip) {
+                    capturingBottomStrip = true;
+                    onFrameChanged.onFrameChanged(position, null);
+                    capturingBottomStrip = false;
+                }
+            }
             if (pinchToZoomHelper != null && pinchToZoomHelper.isInOverlayMode()) {
                 return;
             }
