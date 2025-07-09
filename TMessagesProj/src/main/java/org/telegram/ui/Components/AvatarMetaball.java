@@ -37,13 +37,18 @@ public class AvatarMetaball extends View {
     private static final float HALF_PI = (float) (Math.PI / 2);
     private static final float HANDLE_SIZE = 2.4f;
     public static final float OFFSCREEN_TARGET_FACTOR = 4f;
-    public static final float CAMERA_EXPANSION_MAX = 1.01f;
+
+    public static final float P_START = 0.02f;
+    public static final float P_CAMERA_EXPAND_END = 0.12f;
+    public static final float P_AVATAR_SHRINK_END = 0.89f;
+    public static final float CAMERA_MIN_SCALE = 0.5f;
+
     private float cameraScale = 1f;
 
     public float getConnectThreshold() {
         float value;
         if (hasCameraTarget()) {
-            value = AndroidUtilities.dp(60);
+            value = AndroidUtilities.dp(80);
         } else {
             value = AndroidUtilities.dp(64);
         }
@@ -69,7 +74,7 @@ public class AvatarMetaball extends View {
                                 if (r.top == 0 &&
                                         Math.abs((r.left + r.right) / 2f - screenW / 2f) < r.width() / 2f) {
                                     cameraR = Math.min(r.width(), r.height()) / 2f;
-                                    cameraCy = r.bottom - cameraR;
+                                    cameraCy = r.top + r.height() / 2f;
                                     useCameraTarget = true;
                                     break;
                                 }
@@ -125,8 +130,7 @@ public class AvatarMetaball extends View {
         canvas.drawCircle(centerX, y2, tr, paint);
         final float d = Math.abs(y2 - y1);
         float gap = d - (r + tr);
-        if (gap > getConnectThreshold()) {
-            canvas.drawCircle(centerX, y1, r, paint);
+        if (gap > getConnectThreshold()  || progress > P_AVATAR_SHRINK_END) {
             return;
         }
 

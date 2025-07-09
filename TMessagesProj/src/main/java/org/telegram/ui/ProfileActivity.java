@@ -1077,7 +1077,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (progressToExpand == animatedFracture) {
                 return;
             }
-            progressToExpand = animatedFracture;
+            expandProgress = progressToExpand = animatedFracture;
+            requestLayout();
             invalidate();
         }
 
@@ -1259,7 +1260,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 //                if (diffFast >= .7) {
                 StarGiftPatterns2.resetAnchor();
 //                }
-                if (hasEmoji && avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
+                if (hasEmoji && avatarMetaballAnimationProgress < AvatarMetaball.P_AVATAR_SHRINK_END) {
                     final float loadedScale = emojiLoadedT.set(isEmojiLoaded());
                     final float full = emojiFullT.set(emojiIsCollectible);
                     if (loadedScale > 0) {
@@ -1276,7 +1277,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     }
                 }
                 giftsView.setProgress(diffFast);
-                giftsView.setAlpha(avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END ? 1 : 0);
+                giftsView.setAlpha(avatarMetaballAnimationProgress < AvatarMetaball.P_AVATAR_SHRINK_END ? 1 : 0);
                 if (previousTransitionFragment != null) {
                     ActionBar actionBar = previousTransitionFragment.getActionBar();
                     ActionBarMenu menu = actionBar.menu;
@@ -9101,7 +9102,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     animators.add(ObjectAnimator.ofFloat(writeButton, View.SCALE_X, 0.2f));
                     animators.add(ObjectAnimator.ofFloat(writeButton, View.SCALE_Y, 0.2f));
                     animators.add(ObjectAnimator.ofFloat(writeButton, View.ALPHA, 0.0f));
-                    toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, false);
+//                    toolbarButtonsFrame.setButtonVisible(R.raw.r1_message, false);
                 }
                 for (int a = 0; a < 2; a++) {
                     animators.add(ObjectAnimator.ofFloat(nameTextView[a], View.ALPHA, a == 0 ? 1.0f : 0.0f));
@@ -15134,10 +15135,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    private static final float P_START = 0.02f;
-    private static final float P_CAMERA_EXPAND_END = 0.12f;
-    private static final float P_AVATAR_SHRINK_END = 0.89f;
-    private static final float CAMERA_MIN_SCALE = 0.5f;
     private float avatarMetaballAnimationProgress;
 
     private void updateMetaball() {
@@ -15146,7 +15143,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         final float baseAvatarR = avatarContainer.getWidth() / 2f;
         int[] coords = new int[2];
-        avatarContainer.getLocationInWindow(coords);
+        avatarContainer.getLocationOnScreen(coords);
 
         final float connectThreshold = metaball.getConnectThreshold();
         final float cameraExpansion = Math.max(AndroidUtilities.dp2(14) / metaball.getBaseCameraRadius(), 1f);
@@ -15166,11 +15163,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 avatarMetaballAnimationProgress = 0f;
             } else if (centerDistance > 0f) {
                 avatarMetaballAnimationProgress =
-                        (connectThreshold - centerDistance) / connectThreshold * P_AVATAR_SHRINK_END;
+                        (connectThreshold - centerDistance) / connectThreshold * AvatarMetaball.P_AVATAR_SHRINK_END;
             } else {
                 float overshoot = Math.min(extraRange, -centerDistance);
                 avatarMetaballAnimationProgress =
-                        P_AVATAR_SHRINK_END + (overshoot / extraRange) * (1f - P_AVATAR_SHRINK_END);
+                        AvatarMetaball.P_AVATAR_SHRINK_END + (overshoot / extraRange) * (1f - AvatarMetaball.P_AVATAR_SHRINK_END);
             }
 
             avatarMetaballAnimationProgress = Utilities.clamp(avatarMetaballAnimationProgress, 1f, 0f);
@@ -15184,16 +15181,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         float camScale;
-        if (avatarMetaballAnimationProgress <= P_START) {
-            camScale = CAMERA_MIN_SCALE;
-        } else if (avatarMetaballAnimationProgress < P_CAMERA_EXPAND_END) {
-            float t = (avatarMetaballAnimationProgress - P_START) / (P_CAMERA_EXPAND_END - P_START);
-            camScale = AndroidUtilities.lerp(CAMERA_MIN_SCALE, cameraExpansion, t);
-        } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
+        if (avatarMetaballAnimationProgress <= AvatarMetaball.P_START) {
+            camScale = AvatarMetaball.CAMERA_MIN_SCALE;
+        } else if (avatarMetaballAnimationProgress < AvatarMetaball.P_CAMERA_EXPAND_END) {
+            float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_START) / (AvatarMetaball.P_CAMERA_EXPAND_END - AvatarMetaball.P_START);
+            camScale = AndroidUtilities.lerp(AvatarMetaball.CAMERA_MIN_SCALE, cameraExpansion, t);
+        } else if (avatarMetaballAnimationProgress < AvatarMetaball.P_AVATAR_SHRINK_END) {
             camScale = cameraExpansion;
         } else {
-            float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
-            camScale = AndroidUtilities.lerp(cameraExpansion, CAMERA_MIN_SCALE, t);
+            float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_AVATAR_SHRINK_END) / (1f - AvatarMetaball.P_AVATAR_SHRINK_END);
+            camScale = AndroidUtilities.lerp(cameraExpansion, AvatarMetaball.CAMERA_MIN_SCALE, t);
         }
         metaball.setCameraScale(camScale);
 
@@ -15203,18 +15200,18 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         } else {
             avatarTargetScale = 0.55f;
         }
-        float avatarEndScale = avatarTargetScale * (CAMERA_MIN_SCALE / cameraExpansion);
+        float avatarEndScale = avatarTargetScale * (AvatarMetaball.CAMERA_MIN_SCALE / cameraExpansion);
 
         float avatarScale;
 
         if (metaball.hasCameraTarget()) {
-            if (avatarMetaballAnimationProgress <= P_START) {
+            if (avatarMetaballAnimationProgress <= AvatarMetaball.P_START) {
                 avatarScale = avatarScaleCurrent;
-            } else if (avatarMetaballAnimationProgress < P_AVATAR_SHRINK_END) {
-                float t = (avatarMetaballAnimationProgress - P_START) / (P_AVATAR_SHRINK_END - P_START);
+            } else if (avatarMetaballAnimationProgress < AvatarMetaball.P_AVATAR_SHRINK_END) {
+                float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_START) / (AvatarMetaball.P_AVATAR_SHRINK_END - AvatarMetaball.P_START);
                 avatarScale = AndroidUtilities.lerp(avatarScaleCurrent, avatarTargetScale, t);
             } else {
-                float t = (avatarMetaballAnimationProgress - P_AVATAR_SHRINK_END) / (1f - P_AVATAR_SHRINK_END);
+                float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_AVATAR_SHRINK_END) / (1f - AvatarMetaball.P_AVATAR_SHRINK_END);
                 avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
             }
         } else {
@@ -15241,7 +15238,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float toolbarBottom = ActionBar.getCurrentActionBarHeight()
                 + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                 + extraHeight;
-        float v = currentExpandAnimatorValue * dp(96);
+        float v = currentExpanAnimatorFracture != 0 ? currentExpandAnimatorValue * dp(96) : 0;
         for (int i = 0; i < listAdapter.getItemCount(); i++) {
             View fP = layoutManager.findViewByPosition(i);
             if (fP != null) {
@@ -15511,8 +15508,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     tmpRectF.set(b.rect.left, b.rect.bottom - b.rect.height() * scaleY, b.rect.right, b.rect.bottom);
 
                     canvas.save();
-                    float scale = (i == pressedIndex) ? 1.08f : 1f;
-                    canvas.scale(scale, scale, tmpRectF.centerX(), tmpRectF.centerY());
+                    float scaleAX = (i == pressedIndex) ? ((tmpRectF.width() + dp(4))/tmpRectF.width()) : 1f;
+                    float scaleAY = (i == pressedIndex) ? ((tmpRectF.height() + dp(4))/tmpRectF.height()) : 1f;
+                    canvas.scale(scaleAX, scaleAY, tmpRectF.centerX(), tmpRectF.centerY());
 
                     canvas.drawRoundRect(tmpRectF, dp(10), dp(10), buttonPaint);
 
@@ -15638,7 +15636,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         chatNotificationsPopupWrapper.showAsOptions(ProfileActivity.this, view, x, y);
     }
 
-    static int blurTh = 5, blurTw = dp(AVATAR_BASE_SIZE_DP);
+    static int blurTh = 3, blurTw = dp(AVATAR_BASE_SIZE_DP);
 
     private void drawAvatarVP() {
         if (avatarsViewPager.getWidth() > 0 && currentExpandAnimatorValue >= 1) {
@@ -15666,6 +15664,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         } catch (Exception ignore) {
             useNew = false;
             Utilities.stackBlurBitmap(toolbarBlur, r);
+        }
+
+        if (toolbarBlur != null) {
+            try {
+                Canvas dimCanvas = new Canvas(toolbarBlur);
+                dimCanvas.drawColor(0x66000000, PorterDuff.Mode.SRC_ATOP);
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
         }
     }
 

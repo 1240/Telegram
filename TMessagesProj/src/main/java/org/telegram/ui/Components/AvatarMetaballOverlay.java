@@ -22,7 +22,7 @@ public class AvatarMetaballOverlay extends View {
 
     public void update(float cy, float r, float prog) {
         avatarCy = cy;
-        avatarR = r;
+        avatarR = r + 1;
         progress = Utilities.clamp(prog, 1f, 0f);
         invalidate();
     }
