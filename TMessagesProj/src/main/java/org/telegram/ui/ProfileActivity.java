@@ -7188,6 +7188,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     };
 
     private void setMediaHeaderVisible(boolean visible) {
+        if (visible) {
+            avatarContainer.setAlpha(0f);
+            metaballOverlay.setAlpha(0f);
+            metaball.setAlpha(0f);
+        }
         if (mediaHeaderVisible == visible) {
             return;
         }
@@ -15194,7 +15199,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 initScale = avatarScaleCurrent;
                 avatarMetaballAnimationProgress = 0f;
                 metaballOverlay.setAlpha(0);
-                return;
             } else if (centerDistance > 0f) {
                 avatarMetaballAnimationProgress =
                         (connectThreshold - centerDistance) / connectThreshold * AvatarMetaball.P_AVATAR_SHRINK_END;
