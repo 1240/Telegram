@@ -5041,7 +5041,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         animatedStatusView.setPivotX(AndroidUtilities.dp(30));
         animatedStatusView.setPivotY(AndroidUtilities.dp(30));
 
-        avatarContainer = new FrameLayout(context);
+        avatarContainer = new FrameLayout(context) {
+            @Override
+            protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                super.onSizeChanged(w, h, oldw, oldh);
+                setPivotX(w * 0.5f);
+            }
+        };
         metaballOverlay = new AvatarMetaballOverlay(context);
         metaball = new AvatarMetaball(context);
         avatarContainer2 = new FrameLayout(context) {
@@ -5127,7 +5133,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         fallbackImage.setRoundRadius(AndroidUtilities.dp(11));
         AndroidUtilities.updateViewVisibilityAnimated(avatarContainer2, true, 1f, false);
         frameLayout.addView(avatarContainer2, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
-        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP / 2);
+//        avatarContainer.setPivotX(AVATAR_BASE_SIZE_DP / 2);
         avatarContainer.setPivotY(0);
 
         giftsView = new ProfileGiftsView(context, currentAccount, getDialogId(), avatarContainer, avatarImage, resourcesProvider);
@@ -5922,7 +5928,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final int newTop = ActionBar.getCurrentActionBarHeight() + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0);
         final float value = currentExpandAnimatorValue = AndroidUtilities.lerp(expandAnimatorValues, currentExpanAnimatorFracture = animatedFracture);
         checkPhotoDescriptionAlpha();
-        avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
+//        avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
         avatarImage.setExpandProgress(currentExpandAnimatorValue);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
@@ -7768,7 +7774,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         expandAnimator.start();
                     }
 
-                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
+//                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                     avatarContainer.setScaleX(avatarScale);
                     avatarContainer.setScaleY(avatarScale);
 
@@ -7823,7 +7829,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 starFgItem.setTranslationX(avatarContainer.getX() + AndroidUtilities.dp(28) + extra);
                 starFgItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(24) + extra);
 
-                avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
+//                avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                 avatarContainer.setScaleX(avatarScale);
                 avatarContainer.setScaleY(avatarScale);
 
@@ -7865,6 +7871,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 float nameScale = 1.0f + 0.12f * diff;
                 if (expandAnimator == null || !expandAnimator.isRunning()) {
+                    if (avatarMetaballAnimationProgress <= 0) {
                     FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) avatarContainer.getLayoutParams();
                     int tailPx = avatarImage != null ? (int) avatarImage.getExtraTailPx() : 0;
                     if (lp.height != lp.width + tailPx) {
@@ -7872,9 +7879,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         avatarContainer.requestLayout();
                     }
                     float extraAvatarScale = avatarScale * diff;
-                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
+//                    avatarContainer.setPivotX(avatarContainer.getWidth() / 2f);
                     avatarContainer.setScaleX(extraAvatarScale);
                     avatarContainer.setScaleY(extraAvatarScale);
+                    }
 //                    avatarContainer.setTranslationX(avatarX);
                     float diffFast = (float) Math.pow(diff, 1f);
                     float avatarYFast = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
@@ -8937,6 +8945,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     boolean profileTransitionInProgress;
+
 
     @Override
     public AnimatorSet onCustomTransitionAnimation(final boolean isOpen, final Runnable callback) {
@@ -15155,6 +15164,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private float avatarMetaballAnimationProgress;
 
+    float lastScale = -1f;
+    float initScale = 1.5f;
+
     private void updateMetaball() {
         if (metaballOverlay == null || metaball == null || avatarContainer == null || avatarContainer.getWidth() == 0)
             return;
@@ -15166,6 +15178,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final float connectThreshold = metaball.getConnectThreshold();
         final float cameraExpansion = Math.max(AndroidUtilities.dp2(14) / metaball.getBaseCameraRadius(), 1f);
 
+//        float avatarScaleCurrent = lastScale == -1 ? avatarContainer.getScaleY() : lastScale;
         float avatarScaleCurrent = avatarContainer.getScaleY();
         float currentAvatarR = baseAvatarR * avatarScaleCurrent;
 
@@ -15178,7 +15191,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             final float extraRange = AndroidUtilities.dp(11);
 
             if (centerDistance >= connectThreshold) {
+                initScale = avatarScaleCurrent;
                 avatarMetaballAnimationProgress = 0f;
+                metaballOverlay.setAlpha(0);
+                return;
             } else if (centerDistance > 0f) {
                 avatarMetaballAnimationProgress =
                         (connectThreshold - centerDistance) / connectThreshold * AvatarMetaball.P_AVATAR_SHRINK_END;
@@ -15224,23 +15240,24 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         if (metaball.hasCameraTarget()) {
             if (avatarMetaballAnimationProgress <= AvatarMetaball.P_START) {
-                avatarScale = avatarScaleCurrent;
+                avatarScale = initScale;
             } else if (avatarMetaballAnimationProgress < AvatarMetaball.P_AVATAR_SHRINK_END) {
                 float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_START) / (AvatarMetaball.P_AVATAR_SHRINK_END - AvatarMetaball.P_START);
-                avatarScale = AndroidUtilities.lerp(avatarScaleCurrent, avatarTargetScale, t);
+                avatarScale = AndroidUtilities.lerp(initScale, avatarTargetScale, t);
             } else {
                 float t = (avatarMetaballAnimationProgress - AvatarMetaball.P_AVATAR_SHRINK_END) / (1f - AvatarMetaball.P_AVATAR_SHRINK_END);
                 avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
             }
         } else {
             avatarMetaballAnimationProgress = Math.min(.999f, avatarMetaballAnimationProgress);
-            avatarScale = Math.max(1f, avatarScaleCurrent);
+            avatarScale = Math.max(1f, initScale);
         }
         avatarContainer.setAlpha(centerDistance < 0 ? 0 : 1);
         metaballOverlay.setAlpha(centerDistance < 0 || avatarScaleCurrent > 1.4f ? 0 : 1);
-        metaball.setAlpha(avatarScaleCurrent > 1.5f ? 0 : 1);
+        metaball.setAlpha(avatarScaleCurrent > initScale ? 0 : 1);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
+        lastScale = avatarScale;
 
         final float r = baseAvatarR * avatarScale;
         final float cy = coords[1] + r;
@@ -15256,7 +15273,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float toolbarBottom = ActionBar.getCurrentActionBarHeight()
                 + (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0)
                 + extraHeight;
-        float v = currentExpanAnimatorFracture != 0 ? currentExpandAnimatorValue * dp(96) : 0;
+        float v;
+        if (transitionAnimationInProress) {
+            if (playProfileAnimation == 2) {
+                v = currentExpandAnimatorValue * dp(96);
+            } else {
+                v = 0;
+            }
+        } else {
+            v = currentExpandAnimatorValue * dp(96);
+        }
         for (int i = 0; i < listAdapter.getItemCount(); i++) {
             View fP = layoutManager.findViewByPosition(i);
             if (fP != null) {
@@ -15333,6 +15359,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             setWillNotDraw(false);
         }
     }
+
     private class ToolbarButtonsFrame extends FrameLayout {
 
         private ArrayList<ToolbarButtonsFrameButton> buttons = new ArrayList<>();

@@ -48,7 +48,7 @@ public class AvatarMetaball extends View {
     public float getConnectThreshold() {
         float value;
         if (hasCameraTarget()) {
-            value = AndroidUtilities.dp(80);
+            value = AndroidUtilities.dp(64);
         } else {
             value = AndroidUtilities.dp(64);
         }
@@ -74,7 +74,7 @@ public class AvatarMetaball extends View {
                                 if (r.top == 0 &&
                                         Math.abs((r.left + r.right) / 2f - screenW / 2f) < r.width() / 2f) {
                                     cameraR = Math.min(r.width(), r.height()) / 2f;
-                                    cameraCy = r.top + r.height() / 2f;
+                                    cameraCy = r.bottom - cameraR;
                                     useCameraTarget = true;
                                     break;
                                 }
