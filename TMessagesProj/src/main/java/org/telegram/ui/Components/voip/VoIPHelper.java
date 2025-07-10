@@ -1,5 +1,7 @@
 package org.telegram.ui.Components.voip;
 
+import static org.telegram.messenger.MessagesController.findUpdatesAndRemove;
+
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -37,6 +39,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SendMessagesHelper;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.Utilities;
 import org.telegram.messenger.voip.Instance;
 import org.telegram.messenger.voip.VoIPService;
 import org.telegram.tgnet.ConnectionsManager;
@@ -55,6 +58,8 @@ import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.JoinCallAlert;
 import org.telegram.ui.Components.JoinCallByUrlAlert;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Premium.LimitReachedBottomSheet;
+import org.telegram.ui.DarkBlueThemeResourcesProvider;
 import org.telegram.ui.GroupCallActivity;
 import org.telegram.ui.LaunchActivity;
 
@@ -73,18 +78,81 @@ public class VoIPHelper {
 
 	private static final int VOIP_SUPPORT_ID = 4244000;
 
+	static BaseFragment fragment123;
+	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, BaseFragment fragment, TLRPC.UserFull userFull, AccountInstance accountInstance) {
+		fragment123= fragment;
+		startCall(user, videoCall, canVideoCall, activity, userFull, accountInstance);
+	}
 	public static void startCall(TLRPC.User user, boolean videoCall, boolean canVideoCall, final Activity activity, TLRPC.UserFull userFull, AccountInstance accountInstance) {
 		if (accountInstance == null ? MessagesController.getInstance(UserConfig.selectedAccount).isFrozen() : accountInstance.getMessagesController().isFrozen()) {
 			AccountFrozenAlert.show(accountInstance == null ? UserConfig.selectedAccount : accountInstance.getCurrentAccount());
 			return;
 		}
 		if (userFull != null && userFull.phone_calls_private) {
-			new AlertDialog.Builder(activity)
-					.setTitle(LocaleController.getString(R.string.VoipFailed))
-					.setMessage(AndroidUtilities.replaceTags(LocaleController.formatString("CallNotAvailable", R.string.CallNotAvailable,
-							ContactsController.formatName(user.first_name, user.last_name))))
-					.setPositiveButton(LocaleController.getString(R.string.OK), null)
-					.show();
+			if (fragment123 != null) {
+				int currentAccount = UserConfig.selectedAccount;
+				final TL_phone.createConferenceCall req = new TL_phone.createConferenceCall();
+				req.random_id = Utilities.random.nextInt();
+				ConnectionsManager.getInstance(currentAccount).sendRequest(req, (res, err) -> AndroidUtilities.runOnUIThread(() -> {
+					if (res instanceof TLRPC.Updates) {
+						final TLRPC.Updates updates = (TLRPC.Updates) res;
+						MessagesController.getInstance(currentAccount).putUsers(updates.users, false);
+						MessagesController.getInstance(currentAccount).putChats(updates.chats, false);
+
+						TLRPC.GroupCall groupCall = null;
+						for (TLRPC.TL_updateGroupCall u : findUpdatesAndRemove(updates, TLRPC.TL_updateGroupCall.class)) {
+							groupCall = u.call;
+						}
+
+						if (LaunchActivity.instance == null) {
+							return;
+						}
+						if (groupCall != null) {
+							final LimitReachedBottomSheet restricterdUsersBottomSheet = new LimitReachedBottomSheet(fragment123, fragment123.getContext(), LimitReachedBottomSheet.TYPE_CALL_RESTRICTED, UserConfig.selectedAccount, new DarkBlueThemeResourcesProvider());
+							ArrayList<TLRPC.User> arrayList = new ArrayList<>();
+							arrayList.add(user);
+							restricterdUsersBottomSheet.hideUsers(true);
+							restricterdUsersBottomSheet.setRestrictedUsers(null, arrayList, null, null, groupCall.invite_link);
+							restricterdUsersBottomSheet.show();
+//							final TLRPC.TL_inputGroupCall inputGroupCall = new TLRPC.TL_inputGroupCall();
+//							inputGroupCall.id = groupCall.id;
+//							inputGroupCall.access_hash = groupCall.access_hash;
+//							VoIPHelper.joinConference(LaunchActivity.instance, currentAccount, inputGroupCall, video, groupCall, users);
+						}
+					} else if (res instanceof TL_phone.groupCall) {
+						final TL_phone.groupCall r = (TL_phone.groupCall) res;
+						MessagesController.getInstance(currentAccount).putUsers(r.users, false);
+						MessagesController.getInstance(currentAccount).putChats(r.chats, false);
+						if (LaunchActivity.instance == null) {
+							return;
+						}
+						final TLRPC.TL_inputGroupCall inputGroupCall = new TLRPC.TL_inputGroupCall();
+//						inputGroupCall.id = r.call.id;
+//						inputGroupCall.access_hash = r.call.access_hash;
+//						VoIPHelper.joinConference(LaunchActivity.instance, currentAccount, inputGroupCall, video, r.call, users);
+						final LimitReachedBottomSheet restricterdUsersBottomSheet = new LimitReachedBottomSheet(fragment123, fragment123.getContext(), LimitReachedBottomSheet.TYPE_CALL_RESTRICTED, UserConfig.selectedAccount, new DarkBlueThemeResourcesProvider());
+						ArrayList<TLRPC.User> arrayList = new ArrayList<>();
+						arrayList.add(user);
+						restricterdUsersBottomSheet.hideUsers(true);
+						restricterdUsersBottomSheet.setRestrictedUsers(null, arrayList, null, null, inputGroupCall.slug);
+						restricterdUsersBottomSheet.show();
+					} else if (err != null) {
+						new AlertDialog.Builder(activity)
+								.setTitle(LocaleController.getString(R.string.VoipFailed))
+								.setMessage(AndroidUtilities.replaceTags(LocaleController.formatString("CallNotAvailable", R.string.CallNotAvailable,
+										ContactsController.formatName(user.first_name, user.last_name))))
+								.setPositiveButton(LocaleController.getString(R.string.OK), null)
+								.show();
+					}
+				}));
+			} else {
+				new AlertDialog.Builder(activity)
+						.setTitle(LocaleController.getString(R.string.VoipFailed))
+						.setMessage(AndroidUtilities.replaceTags(LocaleController.formatString("CallNotAvailable", R.string.CallNotAvailable,
+								ContactsController.formatName(user.first_name, user.last_name))))
+						.setPositiveButton(LocaleController.getString(R.string.OK), null)
+						.show();
+			}
 			return;
 		}
 		if (ConnectionsManager.getInstance(UserConfig.selectedAccount).getConnectionState() != ConnectionsManager.ConnectionStateConnected) {

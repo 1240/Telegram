@@ -2660,7 +2660,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (userId != 0) {
                         TLRPC.User user = getMessagesController().getUser(userId);
                         if (user != null) {
-                            VoIPHelper.startCall(user, id == video_call_item, userInfo != null && userInfo.video_calls_available, getParentActivity(), userInfo, getAccountInstance());
+                            VoIPHelper.startCall(user, id == video_call_item, userInfo != null && userInfo.video_calls_available, getParentActivity(), lastFragment, userInfo, getAccountInstance());
                         }
                     } else if (chatId != 0) {
                         ChatObject.Call call = getMessagesController().getGroupCall(chatId, false);

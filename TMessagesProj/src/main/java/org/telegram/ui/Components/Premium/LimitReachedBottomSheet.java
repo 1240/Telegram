@@ -117,6 +117,10 @@ import java.util.HashSet;
 import java.util.List;
 
 public class LimitReachedBottomSheet extends BottomSheetWithRecyclerListView implements NotificationCenter.NotificationCenterDelegate {
+
+
+    private static boolean hideUsers;
+
     public static final int TYPE_PIN_DIALOGS = 0;
     public static final int TYPE_PUBLIC_LINKS = 2;
     public static final int TYPE_FOLDERS = 3;
@@ -1051,7 +1055,7 @@ public class LimitReachedBottomSheet extends BottomSheetWithRecyclerListView imp
             } else {
                 premiumButtonView.setOverlayText(getString(R.string.ActionSkip), true, true);
             }
-            premiumButtonView.counterView.setCount(selectedChats.size(), true);
+            premiumButtonView.counterView.setCount(hideUsers ? 0 : selectedChats.size(), true);
             premiumButtonView.invalidate();
         } else {
             if (selectedChats.size() > 0) {
@@ -1555,6 +1559,10 @@ public class LimitReachedBottomSheet extends BottomSheetWithRecyclerListView imp
         updatePremiumButtonText();
     }
 
+    public void hideUsers(boolean hideUsers) {
+        this.hideUsers = hideUsers;
+    }
+
     private String forceLink;
     public void setRestrictedUsers(
         TLRPC.Chat chat,
@@ -2014,6 +2022,15 @@ public class LimitReachedBottomSheet extends BottomSheetWithRecyclerListView imp
                 ImageView imageView = new ImageView(context);
                 imageView.setImageDrawable(ContextCompat.getDrawable(getContext(), R.drawable.large_boosts));
                 frameLayout.addView(imageView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+                frameLayout.setBackground(Theme.createCircleDrawable(dp(79), Theme.getColor(Theme.key_featuredStickers_addButton)));
+                addView(frameLayout, LayoutHelper.createLinear(79, 79, Gravity.CENTER_HORIZONTAL, 0, 23, 0, 0));
+            }
+
+            if (type == TYPE_CALL_RESTRICTED && hideUsers) {
+                FrameLayout frameLayout = new FrameLayout(context);
+                ImageView imageView = new ImageView(context);
+                imageView.setImageResource(R.drawable.story_link);
+                frameLayout.addView(imageView, LayoutHelper.createFrame(60, 60, Gravity.CENTER));
                 frameLayout.setBackground(Theme.createCircleDrawable(dp(79), Theme.getColor(Theme.key_featuredStickers_addButton)));
                 addView(frameLayout, LayoutHelper.createLinear(79, 79, Gravity.CENTER_HORIZONTAL, 0, 23, 0, 0));
             }
@@ -2589,15 +2606,23 @@ public class LimitReachedBottomSheet extends BottomSheetWithRecyclerListView imp
                     !(type == TYPE_ADD_MEMBERS_RESTRICTED && !MessagesController.getInstance(currentAccount).premiumFeaturesBlocked() && (premiumInviteBlockedUsers != null && !premiumInviteBlockedUsers.isEmpty() || premiumMessagingBlockedUsers != null && premiumMessagingBlockedUsers.size() >= restrictedUsers.size())) ||
                     !(premiumInviteBlockedUsers != null && premiumInviteBlockedUsers.size() == 1 && premiumMessagingBlockedUsers != null && premiumMessagingBlockedUsers.size() == 1 && canSendLink)
                 ) {
-                    chatStartRow = rowCount;
                     if (type == TYPE_ADD_MEMBERS_RESTRICTED || type == TYPE_CALL_RESTRICTED) {
+                    if (!hideUsers) {
+                        chatStartRow = rowCount;
                         rowCount += restrictedUsers.size();
-                    } else if (type == TYPE_TO0_MANY_COMMUNITIES) {
-                        rowCount += inactiveChats.size();
+                        chatEndRow = rowCount;
                     } else {
-                        rowCount += chats.size();
+                        chatStartRow = chatEndRow = -1;
                     }
+                    } else if (type == TYPE_TO0_MANY_COMMUNITIES) {
+                    chatStartRow = rowCount;
+                        rowCount += inactiveChats.size();
                     chatEndRow = rowCount;
+                    } else {
+                    chatStartRow = rowCount;
+                        rowCount += chats.size();
+                    chatEndRow = rowCount;
+                    }
                 }
                 if (chatEndRow - chatStartRow > 1) {
                     emptyViewDividerRow = rowCount++;
