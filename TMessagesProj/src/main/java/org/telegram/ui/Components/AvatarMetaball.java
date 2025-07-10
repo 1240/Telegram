@@ -50,7 +50,7 @@ public class AvatarMetaball extends View {
         if (hasCameraTarget()) {
             value = AndroidUtilities.dp(64);
         } else {
-            value = AndroidUtilities.dp(64);
+            value = AndroidUtilities.dp(80);
         }
         return value;
     }
@@ -102,6 +102,8 @@ public class AvatarMetaball extends View {
         invalidate();
     }
 
+    int[] loc = new int[2];
+
     @Override
     protected void onDraw(Canvas canvas) {
         if (progress <= 0f || progress == 1f) return;
@@ -115,14 +117,13 @@ public class AvatarMetaball extends View {
         if (useCameraTarget) {
             EARLY_PULL = .5f;
             STICKINESS = .3f;
-            int[] loc = new int[2];
             getLocationOnScreen(loc);
             y2 = cameraCy - loc[1];
             tr = cameraR * cameraScale;
         } else {
             EARLY_PULL = .1f;
-            STICKINESS = progress < .3 ? .5f : 0.5f - (progress - 0.3f);
-            tr = r * OFFSCREEN_TARGET_FACTOR;
+            STICKINESS = progress < .4 ? .5f : 0.5f - (progress - .4f);
+            tr = AndroidUtilities.dp(250);
             y2 = -tr;
         }
 
