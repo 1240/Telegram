@@ -487,6 +487,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private AvatarMetaball metaball;
     private AvatarMetaballOverlay metaballOverlay;
     private ToolbarButtonsFrame toolbarButtonsFrame;
+    private ToolbarButtonsBackFrame toolbarButtonsBackFrame;
     private ToolbarButtonsFrameFade toolbarButtonsFrameFade;
 
     private float avatarY;
@@ -1008,13 +1009,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
 
-            float scale = ((FrameLayout)getParent()).getScaleY();
+            float scale = ((FrameLayout) getParent()).getScaleY();
             float tail = getExtraTailPx() / scale;
             if (tail > 0) {
                 int left = 0;
                 int top = getMeasuredWidth();
                 int right = getMeasuredWidth();
-                int bottom = top + (int)tail;
+                int bottom = top + (int) tail;
                 Bitmap bitmap = imageReceiver != null ? imageReceiver.getBitmapSafe().bitmap : null;
                 if (bitmap != null) {
                     blurBottomBitmap(getBottomBitmap(bitmap));
@@ -1166,9 +1167,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 color1Animated.set(color1, true);
                 color2Animated.set(color2, true);
             }
-            if (getParent() != null) {
-                ((ViewGroup) getParent()).setBackgroundColor(color1);
-            }
             invalidate();
         }
 
@@ -1232,11 +1230,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (previousTransitionFragment.getActionBar() != null && !previousTransitionFragment.getContentView().blurWasDrawn() && previousTransitionFragment.getActionBar().getBackground() == null) {
                         paint.setColor(Theme.getColor(Theme.key_actionBarDefault, previousTransitionFragment.getResourceProvider()));
                         canvas.drawRect(blurBounds, paint);
+                        toolbarButtonsBackFrame.setBackgroundColor(paint.getColor());
                     } else if (previousTransitionMainFragment != null && previousTransitionMainFragment instanceof DialogsActivity && previousTransitionMainFragment.getFragmentView() instanceof SizeNotifierFrameLayout) {
                         previousTransitionMainFragment.getActionBar().blurScrimPaint.setColor(Theme.getColor(Theme.key_actionBarDefault, previousTransitionMainFragment.getResourceProvider()));
                         ((SizeNotifierFrameLayout) previousTransitionMainFragment.getFragmentView()).drawBlurRect(canvas, getY(), blurBounds, previousTransitionMainFragment.getActionBar().blurScrimPaint, true);
+                        toolbarButtonsBackFrame.setBackgroundColor(previousTransitionMainFragment.getActionBar().blurScrimPaint.getColor());
                     } else {
                         previousTransitionFragment.getContentView().drawBlurRect(canvas, getY(), blurBounds, previousTransitionFragment.getActionBar().blurScrimPaint, true);
+                        toolbarButtonsBackFrame.setBackgroundColor(previousTransitionFragment.getActionBar().blurScrimPaint.getColor());
                     }
                 }
                 paint.setColor(currentColor);
@@ -1250,10 +1251,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 final float progressToGradient = (playProfileAnimation == 0 ? 1f : avatarAnimationProgress) * hasColorAnimated.set(hasColorById);
                 if (progressToGradient < 1) {
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, paint);
+                    toolbarButtonsBackFrame.setBackgroundColor(currentColor);
                 }
                 if (progressToGradient > 0) {
                     backgroundPaint.setAlpha((int) (0xFF * progressToGradient));
                     canvas.drawRect(0, 0, getMeasuredWidth(), y1, backgroundPaint);
+                    toolbarButtonsBackFrame.setBackgroundColor(color1);
                 }
                 final float diff = extraHeight / AndroidUtilities.dp(TOOLBAR_INTERMEDIATE_HEIGHT_DP);
                 float diffFast = MathUtils.clamp((float) Math.pow(diff, 3f), 0f, 1f);
@@ -1295,11 +1298,19 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 paint.setColor(color);
                 blurBounds.set(0, y1, getMeasuredWidth(), (int) v);
                 contentView.drawBlurRect(canvas, getY(), blurBounds, paint, true);
+                toolbarButtonsBackFrame.setBackgroundColor(color);
             }
 
             if (parentLayout != null) {
                 parentLayout.drawHeaderShadow(canvas, (int) (headerShadowAlpha * 255), (int) v);
             }
+//            if (toolbarButtonsBackFrame != null) {
+//                if (topView.hasColorById) {
+//                    toolbarButtonsBackFrame.setBackgroundColor(color1);
+//                } else {
+//                    toolbarButtonsBackFrame.setBackgroundColor(currentColor);
+//                }
+//            }
         }
 
         private Rect blurBounds = new Rect();
@@ -2358,6 +2369,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
         toolbarButtonsFrame = new ToolbarButtonsFrame(context);
         toolbarButtonsFrameFade = new ToolbarButtonsFrameFade(context);
+        toolbarButtonsBackFrame = new ToolbarButtonsBackFrame(context);
         searchTransitionOffset = 0;
         searchTransitionProgress = 1f;
         searchMode = false;
@@ -5017,6 +5029,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         topView = new TopView(context);
         topView.setBackgroundColorId(peerColor, false);
         topView.setBackgroundColor(getThemedColor(Theme.key_avatar_backgroundActionBarBlue));
+        frameLayout.addView(toolbarButtonsBackFrame,
+                LayoutHelper.createFrame(
+                        LayoutHelper.MATCH_PARENT,
+                        300,
+                        Gravity.CENTER_HORIZONTAL));
         frameLayout.addView(topView);
         contentView.blurBehindViews.add(topView);
 
@@ -7510,6 +7527,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         toolbarButtonsFrame.setAlpha(pp);
         toolbarButtonsFrame.invalidate();
         toolbarButtonsFrameFade.invalidate();
+        toolbarButtonsBackFrame.invalidate();
         final int newTop = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight();
 
         FrameLayout.LayoutParams layoutParams;
@@ -15246,6 +15264,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         }
         toolbarButtonsFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v);
+        toolbarButtonsBackFrame.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() + v - dp(300) + dp(96));
         toolbarButtonsFrameFade.setTranslationY(toolbarBottom - toolbarButtonsFrame.getHeight() - toolbarButtonsFrameFade.getHeight() + v);
     }
 
@@ -15307,11 +15326,19 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    private class ToolbarButtonsBackFrame extends FrameLayout {
+
+        public ToolbarButtonsBackFrame(@NonNull Context context) {
+            super(context);
+            setWillNotDraw(false);
+        }
+    }
     private class ToolbarButtonsFrame extends FrameLayout {
 
         private ArrayList<ToolbarButtonsFrameButton> buttons = new ArrayList<>();
         private final java.util.List<Integer> supportedIcons = new java.util.ArrayList<>();
         private final android.graphics.Paint buttonPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final android.graphics.Paint backPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.Paint textPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         private final android.graphics.RectF tmpRectF = new android.graphics.RectF();
         private int pressedIndex = -1;
@@ -15508,8 +15535,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     tmpRectF.set(b.rect.left, b.rect.bottom - b.rect.height() * scaleY, b.rect.right, b.rect.bottom);
 
                     canvas.save();
-                    float scaleAX = (i == pressedIndex) ? ((tmpRectF.width() + dp(4))/tmpRectF.width()) : 1f;
-                    float scaleAY = (i == pressedIndex) ? ((tmpRectF.height() + dp(4))/tmpRectF.height()) : 1f;
+                    float scaleAX = (i == pressedIndex) ? ((tmpRectF.width() + dp(4)) / tmpRectF.width()) : 1f;
+                    float scaleAY = (i == pressedIndex) ? ((tmpRectF.height() + dp(4)) / tmpRectF.height()) : 1f;
                     canvas.scale(scaleAX, scaleAY, tmpRectF.centerX(), tmpRectF.centerY());
 
                     canvas.drawRoundRect(tmpRectF, dp(10), dp(10), buttonPaint);
@@ -15640,7 +15667,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private void drawAvatarVP() {
         if (avatarsViewPager.getWidth() > 0 && currentExpandAnimatorValue >= 1) {
-            int blurStripeHeight = (int)(((float)blurTh)/blurTw*avatarsViewPager.getWidth());
+            int blurStripeHeight = (int) (((float) blurTh) / blurTw * avatarsViewPager.getWidth());
             Bitmap stripBitmap = Bitmap.createBitmap(avatarsViewPager.getWidth(), blurStripeHeight, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(stripBitmap);
             c.translate(0, -(avatarsViewPager.getHeight() - blurStripeHeight));
@@ -15648,6 +15675,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             blurBottomBitmap(getBottomBitmap(stripBitmap));
 
             toolbarButtonsFrameFade.invalidate();
+            toolbarButtonsBackFrame.invalidate();
             toolbarButtonsFrame.invalidate();
         }
     }
@@ -15691,7 +15719,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
 
         int scaledH = scaled.getHeight();
-        int stripH  = Math.min(blurTh, scaledH);
+        int stripH = Math.min(blurTh, scaledH);
         return Bitmap.createBitmap(
                 scaled,
                 0,
