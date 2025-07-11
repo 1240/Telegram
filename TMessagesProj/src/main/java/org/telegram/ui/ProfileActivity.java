@@ -838,12 +838,22 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private final float[] clipRadii = new float[8];
 
         private void rebuildClipPath() {
+            float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
+            inset *= (1f - progressToExpand);
+            inset *= progressToInsets * (1f - foregroundAlpha);
             clipPath.reset();
             clipRadii[0] = clipRadii[1] = radius;
             clipRadii[2] = clipRadii[3] = radius;
             clipRadii[4] = clipRadii[5] = radius;
             clipRadii[6] = clipRadii[7] = radius;
-            clipPath.addRoundRect(0f, 0f, getMeasuredWidth(), getMeasuredHeight(), clipRadii, Path.Direction.CW);
+            clipPath.addRoundRect(
+                    inset,
+                    inset,
+                    getMeasuredWidth() - inset,
+                    getMeasuredHeight() - inset,
+                    clipRadii,
+                    Path.Direction.CW
+            );
         }
 
         @Override
@@ -968,7 +978,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             canvas.scale(bounceScale, bounceScale, getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
             canvas.save();
             canvas.clipPath(clipPath);
-            float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
+//            float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
+            float inset = 0;
             inset *= (1f - progressToExpand);
             inset *= progressToInsets * (1f - foregroundAlpha);
             float alpha = 1.0f;
@@ -1061,6 +1072,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             this.progressToInsets = progressToInsets;
             //if (hasStories) {
+            rebuildClipPath();
             invalidate();
             //}
         }
@@ -1078,6 +1090,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return;
             }
             this.hasStories = hasStories;
+            rebuildClipPath();
             invalidate();
         }
 
@@ -1086,6 +1099,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return;
             }
             expandProgress = progressToExpand = animatedFracture;
+            rebuildClipPath();
             requestLayout();
             invalidate();
         }
@@ -1095,6 +1109,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 return;
             }
             expandProgress = p;
+            rebuildClipPath();
             requestLayout();
             invalidate();
         }
@@ -1223,6 +1238,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             return false;
         }
+
         int[] coords123 = new int[2];
 
         @Override
@@ -15557,7 +15573,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         protected void onDraw(@NonNull Canvas canvas) {
-            if ( (getHeight() * scaleY) < dp(40)) {
+            if ((getHeight() * scaleY) < dp(40)) {
                 setClickable(false);
             } else {
                 setClickable(true);
