@@ -7276,10 +7276,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         if (callItem != null)
             animators.add(ObjectAnimator.ofFloat(callItem, View.ALPHA, visible ? 0.0f : 1.0f));
-        toolbarButtonsFrame.setButtonVisible(chatId != 0 ? R.raw.r1_live_stream : R.raw.r1_call, !visible);
+//        toolbarButtonsFrame.setButtonVisible(chatId != 0 ? R.raw.r1_live_stream : R.raw.r1_call, !visible);
         if (videoCallItem != null)
             animators.add(ObjectAnimator.ofFloat(videoCallItem, View.ALPHA, visible ? 0.0f : 1.0f));
-        toolbarButtonsFrame.setButtonVisible(R.raw.r1_video, !visible);
+//        toolbarButtonsFrame.setButtonVisible(R.raw.r1_video, !visible);
         animators.add(ObjectAnimator.ofFloat(otherItem, View.ALPHA, visible ? 0.0f : 1.0f));
         animators.add(ObjectAnimator.ofFloat(editItem, View.ALPHA, visible ? 0.0f : 1.0f));
         if (callItem != null)
