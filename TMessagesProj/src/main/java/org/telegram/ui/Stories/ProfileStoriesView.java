@@ -481,6 +481,16 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
         newStoryBounce.start();
     }
 
+    @Override
+    public void setPivotX(float pivotX) {
+        super.setPivotX(pivotX);
+    }
+
+    @Override
+    public void setPivotY(float pivotY) {
+        super.setPivotY(pivotY);
+    }
+
     float w;
 
     @Override
@@ -984,7 +994,7 @@ public class ProfileStoriesView extends View implements NotificationCenter.Notif
     public void setExpandCoords(float right, boolean rightPadded, float y) {
         this.expandRight = right;
         this.expandRightPad = rightPadded;
-        this.expandY = y;
+        this.expandY = y - dp(20);
         invalidate();
     }
 
