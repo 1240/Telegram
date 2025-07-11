@@ -36,7 +36,6 @@ public class AvatarMetaball extends View {
 
     private static final float HALF_PI = (float) (Math.PI / 2);
     private static final float HANDLE_SIZE = 2.4f;
-    public static final float OFFSCREEN_TARGET_FACTOR = 4f;
 
     public static final float P_START = 0.02f;
     public static final float P_CAMERA_EXPAND_END = 0.12f;

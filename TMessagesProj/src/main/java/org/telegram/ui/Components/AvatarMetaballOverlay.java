@@ -51,6 +51,7 @@ public class AvatarMetaballOverlay extends View {
     RectF dst = new RectF();
     Path clip = new Path();
 
+    private boolean useNew = true;
     @Override
     protected void onDraw(Canvas canvas) {
         if (progress <= 0f || progress == 1f) {
@@ -61,7 +62,16 @@ public class AvatarMetaballOverlay extends View {
 
         if (avatar != null) {
             avartarBlur = avatar.copy(Bitmap.Config.ARGB_8888, true);
-            Utilities.stackBlurBitmap2(avartarBlur, (int)(progress * 20));
+            try {
+                if (useNew) {
+                    Utilities.stackBlurBitmap2(avartarBlur, (int) (progress * 20));
+                } else {
+                    Utilities.stackBlurBitmap(avartarBlur, (int) (progress * 20));
+                }
+            } catch (Exception e) {
+                useNew = false;
+                Utilities.stackBlurBitmap(avartarBlur, (int) (progress * 20));
+            }
         }
         if (avartarBlur != null) {
             canvas.save();

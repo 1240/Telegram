@@ -1223,6 +1223,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             return false;
         }
+        int[] coords123 = new int[2];
 
         @Override
         protected void onDraw(Canvas canvas) {
@@ -1277,10 +1278,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         canvas.save();
                         canvas.clipRect(0, 0, getMeasuredWidth(), y1);
                         float r = (avatarContainer.getWidth() / 2f) * avatarContainer.getScaleX();
-                        int[] coords = new int[2];
-                        avatarContainer.getLocationInWindow(coords);
-                        float cx = coords[0] + r;
-                        float cy = coords[1] + r;
+                        avatarContainer.getLocationInWindow(coords123);
+                        float cx = coords123[0] + r;
+                        float cy = coords123[1] + r;
 
                         StarGiftPatterns2.drawOrbitIcons(canvas, emoji, cx, cy, diffFast);
                         canvas.restore();

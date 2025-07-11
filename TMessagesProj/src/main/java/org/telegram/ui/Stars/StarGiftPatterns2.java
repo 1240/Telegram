@@ -94,6 +94,9 @@ public final class StarGiftPatterns2 {
             float lp = (progress - baseDelay) / duration;
             lp = MathUtils.clamp(lp, 0f, 1f);
             lp = 1f - (float) Math.pow(1f - lp, 3);
+            if (lp <= 0f) {
+                continue;
+            }
 
             float offsetX = dpf2(tx * PATTERN_SCALE);
             float offsetY = dpf2(ty * PATTERN_SCALE);
@@ -162,7 +165,10 @@ public final class StarGiftPatterns2 {
             float lp = (progress - GIFT_DELAY[g]) / GIFT_DURATION[g];
             lp = MathUtils.clamp(lp, 0f, 1f);
             lp = 1f - (float) Math.pow(1f - lp, 3);   // ease‑out‑cubic
-
+            if (lp <= 0f) {
+                continue;
+            }
+            
             float offsetX = dpf2(tx * GIFT_PATTERN_SCALE * GIFT_HORIZONTAL_RATIO);
             float offsetY = dpf2(ty * GIFT_PATTERN_SCALE * GIFT_VERTICAL_RATIO);
             float startX = ANCHOR_CX + offsetX;

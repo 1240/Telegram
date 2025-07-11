@@ -330,7 +330,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
         if (gifts.isEmpty()) return;
         float cx = avatarContainer.getX() + avatarContainer.getWidth()  * avatarContainer.getScaleX() / 2f;
         float cy = avatarContainer.getY() + avatarContainer.getHeight() * avatarContainer.getScaleY() / 2f;
-        float p = expandProgress;    // пример; можно оставить свой
+        float p = expandProgress;
 
         StarGiftPatterns2.drawOrbitGifts(canvas, gifts, cx, cy, p);
 
