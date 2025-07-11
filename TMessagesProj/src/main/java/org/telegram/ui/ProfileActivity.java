@@ -980,8 +980,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             canvas.clipPath(clipPath);
 //            float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
             float inset = 0;
-            inset *= (1f - progressToExpand);
-            inset *= progressToInsets * (1f - foregroundAlpha);
+//            inset *= (1f - progressToExpand);
+//            inset *= progressToInsets * (1f - foregroundAlpha);
             float alpha = 1.0f;
             if (animateFromImageReceiver != null) {
                 alpha *= 1.0f - crossfadeProgress;
@@ -5071,7 +5071,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 setPivotX(w * 0.5f);
             }
         };
-        metaballOverlay = new AvatarMetaballOverlay(context);
+        metaballOverlay = new AvatarMetaballOverlay(context, needInsetForStories());
         metaball = new AvatarMetaball(context);
         avatarContainer2 = new FrameLayout(context) {
 

@@ -21,6 +21,8 @@ public class AvatarMetaballOverlay extends View {
     private Bitmap avatar;
     private Bitmap avartarBlur;
 
+    private boolean hasStories = false;
+
     public void setAvatar(Bitmap avatar) {
         int targetWidthPx = AndroidUtilities.dp2(64);
         if (avatar != null && avatar.getWidth() != targetWidthPx) {
@@ -32,9 +34,13 @@ public class AvatarMetaballOverlay extends View {
         invalidate();
     }
 
-    public AvatarMetaballOverlay(Context ctx) {
+    private int inset = 0;
+
+    public AvatarMetaballOverlay(Context ctx, boolean hasStories) {
         super(ctx);
         setWillNotDraw(false);
+        this.hasStories = hasStories;
+        inset = (hasStories ? AndroidUtilities.dp2(3.5f) : 0);
         avatarOverlayPaint.setStyle(Paint.Style.FILL);
         avatarOverlayPaint.setColor(0xFF000000);
         avatarPaint.setFilterBitmap(true);
@@ -76,7 +82,7 @@ public class AvatarMetaballOverlay extends View {
         if (avartarBlur != null) {
             canvas.save();
             clip.reset();
-            clip.addCircle(cx, avatarCy, avatarR, Path.Direction.CW);
+            clip.addCircle(cx, avatarCy, avatarR - inset, Path.Direction.CW);
             canvas.clipPath(clip);
 
             src.set(0, 0, avartarBlur.getWidth(), avartarBlur.getHeight());
