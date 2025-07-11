@@ -15199,8 +15199,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     float initScale = 1.5f;
 
     private void updateMetaball() {
-        if (metaballOverlay == null || metaball == null || avatarContainer == null || avatarContainer.getWidth() == 0)
+        if (metaballOverlay == null
+                || metaball == null
+                || avatarContainer == null
+                || avatarContainer.getWidth() == 0
+        ) {
             return;
+        }
         final float baseAvatarR = avatarContainer.getWidth() / 2f;
         int[] coords = new int[2];
         avatarContainer.getLocationOnScreen(coords);
@@ -15236,7 +15241,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarMetaballAnimationProgress = Utilities.clamp(avatarMetaballAnimationProgress, 1f, 0f);
         } else {
             centerDistance = coords[1] + currentAvatarR * 2;
-            if (centerDistance >= connectThreshold) {
+            if (centerDistance >= connectThreshold + currentAvatarR * 2) {
                 initScale = avatarScaleCurrent;
                 avatarMetaballAnimationProgress = 0f;
                 metaballOverlay.setAlpha(0);
@@ -15284,8 +15289,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarScale = AndroidUtilities.lerp(avatarTargetScale, avatarEndScale, t);
         }
         avatarContainer.setAlpha(centerDistance < 0 ? 0 : 1);
-        metaballOverlay.setAlpha(centerDistance < 0 || avatarScaleCurrent > 1.4f ? 0 : 1);
-        metaball.setAlpha(avatarScaleCurrent > initScale ? 0 : 1);
+        metaballOverlay.setAlpha(centerDistance < 0 || avatarScaleCurrent > 1.4f  || (expandAnimator != null && expandAnimator.isRunning()) ? 0 : 1);
+        metaball.setAlpha(avatarScaleCurrent > initScale || (expandAnimator != null && expandAnimator.isRunning()) ? 0 : 1);
         avatarContainer.setScaleX(avatarScale);
         avatarContainer.setScaleY(avatarScale);
         lastScale = avatarScale;

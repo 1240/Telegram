@@ -49,7 +49,7 @@ public class AvatarMetaball extends View {
         if (hasCameraTarget()) {
             value = AndroidUtilities.dp(64);
         } else {
-            value = AndroidUtilities.dp(80);
+            value = AndroidUtilities.dp(64);
         }
         return value;
     }
