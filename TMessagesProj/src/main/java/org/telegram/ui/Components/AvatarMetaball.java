@@ -54,9 +54,12 @@ public class AvatarMetaball extends View {
         return value;
     }
 
-    public AvatarMetaball(Context ctx) {
+    private int inset = 0;
+
+    public AvatarMetaball(Context ctx, boolean hasStories) {
         super(ctx);
         setWillNotDraw(false);
+        inset = (hasStories ? AndroidUtilities.dp2(3.5f) : 0);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xFF000000);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -96,7 +99,7 @@ public class AvatarMetaball extends View {
 
     public void update(float cy, float r, float prog) {
         avatarCy = cy;
-        avatarR = r;
+        avatarR = r - inset;
         progress = Utilities.clamp(prog, 1f, 0f);
         invalidate();
     }

@@ -5072,7 +5072,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
         };
         metaballOverlay = new AvatarMetaballOverlay(context, needInsetForStories());
-        metaball = new AvatarMetaball(context);
+        metaball = new AvatarMetaball(context, needInsetForStories());
         avatarContainer2 = new FrameLayout(context) {
 
             CanvasButton canvasButton;
@@ -5584,6 +5584,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 avatarImage.clearForeground();
                 doNotSetForeground = false;
                 updateStoriesViewBounds(false);
+                updateMetaball();
             }
         });
         updateRowsIds();
@@ -7728,6 +7729,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                 topView.setBackgroundColor(Color.BLACK);
                                 avatarContainer.setVisibility(View.GONE);
                                 avatarsViewPager.setVisibility(View.VISIBLE);
+                                updateMetaball();
                             }
                         });
                         expandAnimator.start();
@@ -15291,7 +15293,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         final float cy = coords[1] + r;
         topView.invalidate();
         metaball.update(cy, r, avatarMetaballAnimationProgress);
-        metaballOverlay.update(cy, r, 1 - (centerDistance / connectThreshold));
+        float pp = Utilities.clamp((1 - (centerDistance / connectThreshold)) * 1.5f, 1f, 0f);
+        float storyPP = Utilities.clamp(pp * 3f, 1f, 0f);
+        storyView.setAlpha(1-storyPP);
+        metaballOverlay.update(cy, r, pp);
     }
 
     private void updateToolbarButtonsFramePosition() {
