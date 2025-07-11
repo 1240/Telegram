@@ -7945,7 +7945,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 float onlineWidth = (onlineTextView[1].getPaint()
                         .measureText(onlineTextView[1].getText().toString())
                         + onlineTextView[1].getRightDrawableWidth()) * onlineScale;
-                float backOffset = AndroidUtilities.dp(48 + 8);
+                float backOffset;
+                if (openAnimationInProgress && playProfileAnimation != 2) {
+                    backOffset = AndroidUtilities.dp(48 + 8 + 62) + 1;
+                } else {
+                    backOffset = AndroidUtilities.dp(48 + 8);
+                }
                 float leftNameX = backOffset - nameTextView[1].getLeft();
                 float leftOnlineX = leftNameX;
 
@@ -7960,8 +7965,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 nameX = AndroidUtilities.lerp(leftNameX, centerNameX, diff);
                 onlineX = AndroidUtilities.lerp(leftOnlineX, centerOnlineX, diff);
                 float actionBarCenterY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2f;
-                float leftNameY = actionBarCenterY - (nameTextView[1].getMeasuredHeight() * nameScale) / 2f;
-                float leftOnlineY = actionBarCenterY + AndroidUtilities.dp(4f);
+                float leftNameY = actionBarCenterY - (nameTextView[1].getMeasuredHeight() * nameScale) / 2f - dp(4);
+                float leftOnlineY = actionBarCenterY + AndroidUtilities.dp(3f) - 1;
 
                 int tailPx = avatarImage != null ? (int) avatarImage.getExtraTailPx() : 0;
                 float avatarBase = AVATAR_BASE_SIZE_DP * AndroidUtilities.density;
