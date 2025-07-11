@@ -879,6 +879,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         public void setRoundRadius2(int radius) {
             this.radius = radius;
             foregroundImageReceiver.setRoundRadius(radius);
+            setRoundRadius(radius);
         }
 
         public void setAnimateFromImageReceiver(ImageReceiver imageReceiver) {
@@ -15297,6 +15298,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float storyPP = Utilities.clamp(pp * 3f, 1f, 0f);
         storyView.setAlpha(1-storyPP);
         metaballOverlay.update(cy, r, pp);
+        avatarImage.setRoundRadius2(AndroidUtilities.lerp(getSmallAvatarRoundRadius(), AndroidUtilities.dp(AVATAR_BASE_SIZE_DP / 2), Utilities.clamp(storyPP * 2f, 1f, 0f)));
     }
 
     private void updateToolbarButtonsFramePosition() {

@@ -90,6 +90,6 @@ public class AvatarMetaballOverlay extends View {
         }
 
         avatarOverlayPaint.setAlpha((int) (255 * progress));
-        canvas.drawCircle(cx, avatarCy, avatarR - inset * (1 - progress), avatarOverlayPaint);
+        canvas.drawCircle(cx, avatarCy, avatarR + AndroidUtilities.dp(1)  * (1 - progress) - inset * (1 - progress), avatarOverlayPaint);
     }
 }
