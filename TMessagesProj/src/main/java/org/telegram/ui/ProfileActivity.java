@@ -15308,7 +15308,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float storyPP = Utilities.clamp(pp * 3f, 1f, 0f);
         storyView.setAlpha(1-storyPP);
         metaballOverlay.update(cy, r, pp);
-        avatarImage.setRoundRadius2(AndroidUtilities.lerp(getSmallAvatarRoundRadius(), AndroidUtilities.dp(AVATAR_BASE_SIZE_DP / 2), Utilities.clamp(storyPP * 2f, 1f, 0f)));
+
+        if ((expandAnimator == null || !expandAnimator.isRunning()) && !openAnimationInProgress) {
+            int round = AndroidUtilities.lerp(getSmallAvatarRoundRadius(), AndroidUtilities.dp(AVATAR_BASE_SIZE_DP / 2), Utilities.clamp(storyPP * 2f, 1f, 0f));
+            avatarImage.setRoundRadius2(round);
+        }
     }
 
     private void updateToolbarButtonsFramePosition() {
