@@ -9946,7 +9946,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                                         }, err -> {
                                             if (err != null && "INVITE_REQUEST_SENT".equals(err.text)) {
                                                 SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
-                                                preferences.edit().putLong("dialog_join_requested_time_" + dialogId, System.currentTimeMillis()).commit();
+                                                preferences.edit().putLong("dialog_join_requested_time_" + getDialogId(), System.currentTimeMillis()).commit();
                                                 JoinGroupAlert.showBulletin(getContext(), ProfileActivity.this, ChatObject.isChannel(currentChat) && !currentChat.megagroup);
                                                 updateRowsIds();
                                                 if (listAdapter != null) {
@@ -15656,8 +15656,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void toggleSound() {
                 SharedPreferences preferences = MessagesController.getNotificationsSettings(currentAccount);
-                boolean enabled = !preferences.getBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(dialogId, topicId), true);
-                preferences.edit().putBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(dialogId, topicId), enabled).apply();
+                boolean enabled = !preferences.getBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(getDialogId(), topicId), true);
+                preferences.edit().putBoolean("sound_enabled_" + NotificationsController.getSharedPrefKey(getDialogId(), topicId), enabled).apply();
                 if (BulletinFactory.canShowBulletin(ProfileActivity.this)) {
                     BulletinFactory.createSoundEnabledBulletin(ProfileActivity.this, enabled ? NotificationsController.SETTING_SOUND_ON : NotificationsController.SETTING_SOUND_OFF, getResourceProvider()).show();
                 }
@@ -15666,14 +15666,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void muteFor(int timeInSeconds) {
                 if (timeInSeconds == 0) {
-                    if (getMessagesController().isDialogMuted(dialogId, topicId)) {
+                    if (getMessagesController().isDialogMuted(getDialogId(), topicId)) {
                         toggleMute();
                     }
                     if (BulletinFactory.canShowBulletin(ProfileActivity.this)) {
                         BulletinFactory.createMuteBulletin(ProfileActivity.this, NotificationsController.SETTING_MUTE_UNMUTE, timeInSeconds, getResourceProvider()).show();
                     }
                 } else {
-                    getNotificationsController().muteUntil(dialogId, topicId, timeInSeconds);
+                    getNotificationsController().muteUntil(getDialogId(), topicId, timeInSeconds);
                     if (BulletinFactory.canShowBulletin(ProfileActivity.this)) {
                         BulletinFactory.createMuteBulletin(ProfileActivity.this, NotificationsController.SETTING_MUTE_CUSTOM, timeInSeconds, getResourceProvider()).show();
                     }
@@ -15689,9 +15689,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
             @Override
             public void showCustomize() {
-                if (dialogId != 0) {
+                if (getDialogId() != 0) {
                     Bundle args = new Bundle();
-                    args.putLong("dialog_id", dialogId);
+                    args.putLong("dialog_id", getDialogId());
                     args.putLong("topic_id", topicId);
                     presentFragment(new ProfileNotificationsActivity(args, resourcesProvider));
                 }
@@ -15700,7 +15700,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void toggleMute() {
                 boolean muted = getMessagesController().isDialogMuted(getDialogId(), topicId);
-                getNotificationsController().muteDialog(dialogId, topicId, !muted);
+                getNotificationsController().muteDialog(getDialogId(), topicId, !muted);
                 if (ProfileActivity.this.fragmentView != null) {
                     BulletinFactory.createMuteBulletin(ProfileActivity.this, !muted, null).show();
                 }
@@ -15715,19 +15715,19 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void openExceptions() {
                 Bundle bundle = new Bundle();
-                bundle.putLong("dialog_id", dialogId);
+                bundle.putLong("dialog_id", getDialogId());
                 TopicsNotifySettingsFragments notifySettings = new TopicsNotifySettingsFragments(bundle);
                 notifySettings.setExceptions(notificationsExceptionTopics);
                 presentFragment(notifySettings);
             }
         }, getResourceProvider());
-        chatNotificationsPopupWrapper.update(dialogId, topicId, notificationsExceptionTopics);
+        chatNotificationsPopupWrapper.update(getDialogId(), topicId, notificationsExceptionTopics);
         if (AndroidUtilities.isTablet()) {
             View v = parentLayout.getView();
             x += v.getX() + v.getPaddingLeft();
             y += v.getY() + v.getPaddingTop();
         }
-        chatNotificationsPopupWrapper.showAsOptions(ProfileActivity.this, view, x, y);
+        chatNotificationsPopupWrapper.showAsOptions2(ProfileActivity.this, view, x, y);
     }
 
     static int blurTh = 3, blurTw = dp(AVATAR_BASE_SIZE_DP);
