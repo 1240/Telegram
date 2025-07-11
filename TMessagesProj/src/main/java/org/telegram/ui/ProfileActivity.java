@@ -879,7 +879,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         public void setRoundRadius2(int radius) {
             this.radius = radius;
             foregroundImageReceiver.setRoundRadius(radius);
-            setRoundRadius(radius);
+            invalidate();
         }
 
         public void setAnimateFromImageReceiver(ImageReceiver imageReceiver) {
@@ -970,15 +970,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private final RectF rect2 = new RectF();
         private final Paint fadePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-
         @Override
         protected void onDraw(Canvas canvas) {
+            canvas.save();
+            canvas.clipPath(clipPath);
             float avatarHeight = getMeasuredWidth();
             ImageReceiver imageReceiver = animatedEmojiDrawable != null ? animatedEmojiDrawable.getImageReceiver() : this.imageReceiver;
             canvas.save();
             canvas.scale(bounceScale, bounceScale, getMeasuredWidth() / 2f, getMeasuredHeight() / 2f);
             canvas.save();
-            canvas.clipPath(clipPath);
 //            float inset = hasStories ? (int) AndroidUtilities.dpf2(3.5f) : 0;
             float inset = 0;
 //            inset *= (1f - progressToExpand);
@@ -1048,6 +1048,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
 
+            canvas.restore();
             canvas.restore();
             canvas.restore();
 
@@ -15309,9 +15310,11 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         storyView.setAlpha(1-storyPP);
         metaballOverlay.update(cy, r, pp);
 
-        if ((expandAnimator == null || !expandAnimator.isRunning()) && !openAnimationInProgress) {
+        if ((expandAnimator != null && expandAnimator.isRunning()) || openAnimationInProgress && playProfileAnimation == 2) {
+            avatarImage.setRoundRadius(0);
+        } else {
             int round = AndroidUtilities.lerp(getSmallAvatarRoundRadius(), AndroidUtilities.dp(AVATAR_BASE_SIZE_DP / 2), Utilities.clamp(storyPP * 2f, 1f, 0f));
-            avatarImage.setRoundRadius2(round);
+            avatarImage.setRoundRadius(round);
         }
     }
 
