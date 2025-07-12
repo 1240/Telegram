@@ -44,6 +44,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -65,6 +66,8 @@ import android.media.MediaCodecList;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -313,6 +316,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -15748,20 +15753,47 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     static int blurTh = 3, blurTw = dp(AVATAR_BASE_SIZE_DP);
+    static final int STRIP_W  = dp(AVATAR_BASE_SIZE_DP);
+    static final int STRIP_H  = blurTh;
+    private final Bitmap  stripBmp     = Bitmap.createBitmap(STRIP_W, STRIP_H, Bitmap.Config.ARGB_8888);
+    private final Canvas  stripCanvas  = new Canvas(stripBmp);
+    private final Matrix drawMatrix   = new Matrix();
+    private final Handler blurUi       = new Handler(Looper.getMainLooper());
+    private final Executor blurExec    = Executors.newSingleThreadExecutor();
+    private final int     blurRadius   = 20;
 
+    private long lastBlurTs = 0;
     private void drawAvatarVP() {
-        if (avatarsViewPager.getWidth() > 0 && currentExpandAnimatorValue >= 1) {
-            int blurStripeHeight = (int) (((float) blurTh) / blurTw * avatarsViewPager.getWidth());
-            Bitmap stripBitmap = Bitmap.createBitmap(avatarsViewPager.getWidth(), blurStripeHeight, Bitmap.Config.ARGB_8888);
-            Canvas c = new Canvas(stripBitmap);
-            c.translate(0, -(avatarsViewPager.getHeight() - blurStripeHeight));
-            listView.drawChild(c, avatarsViewPager, 0);
-            blurBottomBitmap(getBottomBitmap(stripBitmap));
+        if (avatarsViewPager.getWidth() == 0 || currentExpandAnimatorValue < 1f) return;
 
-            toolbarButtonsFrameFade.invalidate();
-            toolbarButtonsBackFrame.invalidate();
-            toolbarButtonsFrame.invalidate();
-        }
+        long now = SystemClock.uptimeMillis();
+        if (now - lastBlurTs < 33) return;
+        lastBlurTs = now;
+
+        float sx = STRIP_W / (float) avatarsViewPager.getWidth();
+        float sy = sx;
+        float dy = avatarsViewPager.getHeight() - STRIP_H / sy;
+        drawMatrix.reset();
+        drawMatrix.postScale(sx, sy);
+        drawMatrix.postTranslate(0, -dy * sy);
+
+        stripCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+        stripCanvas.setMatrix(drawMatrix);
+        listView.drawChild(stripCanvas, avatarsViewPager, 0);
+
+        final Bitmap blurInput = stripBmp.copy(stripBmp.getConfig(), true);
+        blurExec.execute(() -> {
+            Utilities.stackBlurBitmap2(blurInput, blurRadius);
+            Canvas dim = new Canvas(blurInput);
+            dim.drawColor(0x55000000, PorterDuff.Mode.SRC_ATOP);
+
+            blurUi.post(() -> {
+                toolbarBlur = blurInput;
+                toolbarButtonsBackFrame.invalidate();
+                toolbarButtonsFrameFade.invalidate();
+                toolbarButtonsFrame.invalidate();
+            });
+        });
     }
 
     public static void blurBottomBitmap(Bitmap src) {

@@ -708,6 +708,8 @@ namespace {
 
 } // namespace
 
+static thread_local std::vector<int> g_stack;
+
 extern "C"
 JNIEXPORT void JNICALL
 Java_org_telegram_messenger_Utilities_stackBlurBitmap2(
@@ -736,7 +738,9 @@ Java_org_telegram_messenger_Utilities_stackBlurBitmap2(
     uint8_t *pixels = lock.ptr;
 
     for (int y = 0; y < h; ++y) {
-        std::vector<int> stack(div * 4);
+        if (g_stack.size() != div * 4)
+            g_stack.resize(div * 4);
+        int *stack = g_stack.data();
         int rinsum = 0, ginsum = 0, binsum = 0, ainsum = 0;
         int routsum = 0, goutsum = 0, boutsum = 0, aoutsum = 0;
         int rsum = 0, gsum = 0, bsum = 0, asum = 0;
